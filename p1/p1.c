@@ -225,8 +225,10 @@ void cmd_borrar(char *tr[]){
         printf("%s\n", getcwd(dir, MAXLINEA));
     }else {
 		for (i=0; tr[i] != NULL; i++){
-			if(rmdir(tr[i]) == -1)
-					perror("Cannot remove directory");
+			if(rmdir(tr[i]) == -1){
+				if(unlink(tr[i]) == -1)
+					perror("Cannot remove");
+				}
 		}	
 	}
 }
