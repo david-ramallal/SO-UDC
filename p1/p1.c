@@ -93,8 +93,7 @@ void cmd_carpeta (char *tr[])
 
     if(tr[0]==NULL)
         printf("%s\n",getcwd(dir, MAXLINEA));
-    else
-    if(chdir(tr[0])==-1)
+    else if(chdir(tr[0])==-1)
         perror("Cannot change directory");
 }
 
@@ -204,47 +203,67 @@ void cmd_comando(char *tr[])
     }
 }
 
-void cmd_crear(char *tr[]) {
+void cmd_crear(char *tr[]) 
+{
     char dir[MAXLINEA];
     
-    if (tr[0] == NULL) {
+    if ((tr[0] == NULL) || (!strcmp(tr[0], "-f") && (tr[1] == NULL))) 
         printf("%s\n", getcwd(dir, MAXLINEA));
-    } else if (!strcmp(tr[0], "-f")){
+    else if (!strcmp(tr[0], "-f"))
 		open(tr[1], O_CREAT);
-    }else{
+    else
 		mkdir(tr[0], 0777);
-    }
-
 }
 
-void cmd_borrar(char *tr[]){
+void cmd_borrar(char *tr[])
+{
     char dir[MAXLINEA];
     int i;
     
-    if (tr[0] == NULL) {
+    if (tr[0] == NULL)
         printf("%s\n", getcwd(dir, MAXLINEA));
-    }else {
+    else {
 		for (i=0; tr[i] != NULL; i++){
 			if(rmdir(tr[i]) == -1){
 				if(unlink(tr[i]) == -1)
 					perror("Cannot remove");
-				}
+			}
 		}	
 	}
 }
 
-void cmd_borrarrec(char *tr[]){
+void cmd_borrarrec(char *tr[])
+{
     char dir[MAXLINEA];
-    if (tr[0] == NULL) {
+    
+    if (tr[0] == NULL) 
         printf("%s\n", getcwd(dir, MAXLINEA));
-    }
+    else{
+	}
+    
 }
 
-void cmd_listfich(char *tr[]){
+void cmd_listfich(char *tr[])
+{
+	char dir[MAXLINEA];
+    
+    if ((tr[0] == NULL) || ((!strcmp(tr[0], "-long") || !strcmp(tr[0], "-link")
+    || !strcmp(tr[0], "-acc")) && (tr[1] == NULL))) 
+        printf("%s\n", getcwd(dir, MAXLINEA));
+    else{
+	}
 
 }
 
-void cmd_listdir(char *tr[]){
+void cmd_listdir(char *tr[])
+{
+	char dir[MAXLINEA];
+    
+    if ((tr[0] == NULL) || ((!strcmp(tr[0], "-reca") || !strcmp(tr[0], "-recb") || !strcmp(tr[0], "-hid") || 
+    !strcmp(tr[0], "-long") || !strcmp(tr[0], "-link") || !strcmp(tr[0], "-acc")) && (tr[1] == NULL))) 
+        printf("%s\n", getcwd(dir, MAXLINEA));
+    else{
+	}
 
 }
 
