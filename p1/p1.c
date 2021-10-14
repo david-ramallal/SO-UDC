@@ -16,6 +16,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <dirent.h>
+#include <pwd.h>
+#include <grp.h>
 #include "CmdList.h"
 
 #define MAXLINEA 1024
@@ -64,6 +66,40 @@ struct CMD C[]={
 
         {NULL,NULL}
 };
+
+char LetraTF (mode_t m)
+{
+	switch (m&S_IFMT) { /*and bit a bit con los bits de formato,0170000 */
+		case S_IFSOCK: return 's'; /*socket */
+		case S_IFLNK:  return 'l'; /*symbolic link*/
+		case S_IFREG:  return '-'; /* fichero normal*/
+		case S_IFBLK:  return 'b'; /*block device*/
+		case S_IFDIR:  return 'd'; /*directorio */
+		case S_IFCHR:  return 'c'; /*char device*/
+		case S_IFIFO:  return 'p'; /*pipe*/
+		default: return '?';       /*desconocido, no deberia aparecer*/
+}
+}
+
+char * ConvierteModo (mode_t m, char *permisos)
+{
+	strcpy (permisos,"---------- ");
+	
+	permisos[0]=LetraTF(m);
+	if (m&S_IRUSR) permisos[1]='r';
+	if (m&S_IWUSR) permisos[2]='w';
+	if (m&S_IXUSR) permisos[3]='x';
+	if (m&S_IRGRP) permisos[4]='r';
+	if (m&S_IWGRP) permisos[5]='w';
+	if (m&S_IXGRP) permisos[6]='x';
+	if (m&S_IROTH) permisos[7]='r';
+	if (m&S_IWOTH) permisos[8]='w';
+	if (m&S_IXOTH) permisos[9]='x';
+	if (m&S_ISUID) permisos[3]='s';
+	if (m&S_ISGID) permisos[6]='s';
+	if (m&S_ISVTX) permisos[9]='t';
+	return permisos;
+}
 
 void cmd_autores (char *tr[])
 {
@@ -246,12 +282,81 @@ void cmd_borrarrec(char *tr[])
 void cmd_listfich(char *tr[])
 {
 	char dir[MAXLINEA];
+	struct stat buffer;
+	int i, size, nlinks, inodes, mode, owner, group;
+	time_t t;
+	struct tm tm;
+	char * perm, * toLink;	
     
-    if ((tr[0] == NULL) || ((!strcmp(tr[0], "-long") || !strcmp(tr[0], "-link")
-    || !strcmp(tr[0], "-acc")) && (tr[1] == NULL))) 
+    if ((tr[0] == NULL) || ((!strcmp(tr[0], "-long") || !strcmp(tr[0], "-acc")) && (tr[1] == NULL))) 
         printf("%s\n", getcwd(dir, MAXLINEA));
-    else{
+    else if (strcmp(tr[0], "-long") && strcmp(tr[0], "-acc")){ 
+		for (i=0; tr[i] != NULL; i++){
+			lstat(tr[i], &buffer);
+			size = buffer.st_size;
+			printf("%d %s\n", size, tr[i]);
+		} 
+	}else if(!strcmp(tr[0], "-long") && strcmp(tr[1], "-link")){
+		for (i=1; tr[i] != NULL; i++){
+			lstat(tr[i], &buffer);
+			nlinks = buffer.st_nlink;
+			inodes = buffer.st_ino; //preguntar orden y inodes(pdf distinto)
+			owner = buffer.st_uid;
+			group = buffer.st_gid;
+			mode = buffer.st_mode;
+			size = buffer.st_size;  //preguntar uso de ->					
+			t = buffer.st_mtime;			
+			localtime_r(&t, &tm);
+			perm =(char *) malloc (12);
+			ConvierteModo(mode, perm);
+			
+			printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);
+			printf(" (%d) %8d %s %s %s%6d %s\n", nlinks, inodes, getpwuid(owner)->pw_name, getgrgid(group)->gr_name, perm, size, tr[i]);
+			free(perm);
+		}		
+	}else if (!strcmp(tr[0], "-long") && !strcmp(tr[1], "-link")){
+		for (i=2; tr[i] != NULL; i++){
+			lstat(tr[i], &buffer);
+			nlinks = buffer.st_nlink;
+			inodes = buffer.st_ino; 
+			owner = buffer.st_uid;
+			group = buffer.st_gid;
+			mode = buffer.st_mode;
+			size = buffer.st_size;  				
+			t = buffer.st_mtime;			
+			localtime_r(&t, &tm);
+			perm =(char *) malloc (12);
+			ConvierteModo(mode, perm);
+			toLink =(char *) malloc (sizeof(char));
+			readlink(tr[i], toLink, 1000);  //Simbolo extraño al printear el link
+			
+			printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);
+			printf(" (%d) %8d %s %s %s%6d %s", nlinks, inodes, getpwuid(owner)->pw_name, getgrgid(group)->gr_name, perm, size, tr[i]);
+			if(S_ISLNK(buffer.st_mode))
+				printf("->%s", toLink);
+			printf("\n");
+			free(perm);	
+			free(toLink);	
 	}
+	}else if (!strcmp(tr[0], "-acc")){
+		for (i=1; tr[i] != NULL; i++){
+			lstat(tr[i], &buffer);
+			nlinks = buffer.st_nlink;
+			inodes = buffer.st_ino; 
+			owner = buffer.st_uid;
+			group = buffer.st_gid;
+			mode = buffer.st_mode;
+			size = buffer.st_size;  					
+			t = buffer.st_atime;			
+			localtime_r(&t, &tm);
+			perm =(char *) malloc (12);
+			ConvierteModo(mode, perm);
+			
+			printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);
+			printf(" (%d) %8d %s %s %s%6d %s\n", nlinks, inodes, getpwuid(owner)->pw_name, getgrgid(group)->gr_name, perm, size, tr[i]);
+			free(perm);		
+	}		
+	}	
 
 }
 
