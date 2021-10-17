@@ -389,6 +389,8 @@ void cmd_listdir(char *tr[])
         printf("%s\n", dir);
     else if (strcmp(tr[0], "-long") && strcmp(tr[0], "-acc")){ 
 		for (i=0; tr[i] != NULL; i++){
+			if(!strcmp(tr[0], "-hid") && i == 0) 
+				i = 1;
 			if(lstat(tr[i], &buffer) == -1)
 				printf("It is not possible to access %s: %s\n", tr[i], strerror(errno));
 			else if (!S_ISREG(buffer.st_mode)){
@@ -399,10 +401,12 @@ void cmd_listdir(char *tr[])
 						chdir(tr[i]);
 						while ((ent = readdir (dirc)) != NULL){
 							printFILE(ent->d_name, !strcmp(tr[1], "-link"), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), (!strcmp(tr[0], "-hid")||!strcmp(tr[1], "-hid")||!strcmp(tr[2], "-hid")), true);
-					}	
+					}
+					closedir(dirc);
+					chdir(dir);
+					free(ent);	
 				}
-				closedir(dirc);
-				chdir(dir);
+				
 			}else {
 			size = buffer.st_size;
 			printf("%d %s\n", size, tr[i]);
@@ -411,8 +415,10 @@ void cmd_listdir(char *tr[])
 	}else if(!strcmp(tr[0], "-long") || !strcmp(tr[0], "-acc")){
 		
 		for (i=1; tr[i] != NULL; i++){
-			if(!strcmp(tr[1], "-link") && i == 1) 
+			if((!strcmp(tr[1], "-link") || !strcmp(tr[1], "-hid")) && i == 1) 
 				i = 2;
+			if(!strcmp(tr[2], "-hid") && i ==2)
+				i = 3;
 			if(lstat(tr[i], &buffer) == -1)
 				printf("It is not possible to access %s: %s\n", tr[i], strerror(errno));
 			else if (!S_ISREG(buffer.st_mode)){
