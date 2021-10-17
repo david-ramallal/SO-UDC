@@ -19,6 +19,7 @@
 #include <pwd.h>
 #include <grp.h>
 #include "CmdList.h"
+#include <errno.h>
 
 #define MAXLINEA 1024
 
@@ -81,6 +82,8 @@ char LetraTF (mode_t m)
 }
 }
 
+	
+
 char * ConvierteModo (mode_t m, char *permisos)
 {
 	strcpy (permisos,"---------- ");
@@ -99,6 +102,65 @@ char * ConvierteModo (mode_t m, char *permisos)
 	if (m&S_ISGID) permisos[6]='s';
 	if (m&S_ISVTX) permisos[9]='t';
 	return permisos;
+}
+
+
+void printFILE(char *fName, bool linK, bool lonG, bool acC, bool dirSz){
+	
+	
+	int size, nlinks, inodes, mode, owner, group;
+	time_t at, mt;
+	struct tm tm;
+	char * perm, * toLink;
+	struct stat buffer;
+	
+
+	
+			if(lstat(fName, &buffer) == -1)
+				printf("It is not possible to access %s: %s\n", fName, strerror(errno));
+			else if(dirSz){	
+				size = buffer.st_size;
+			printf("%d %s\n", size, fName);
+				
+			}else{
+			nlinks = buffer.st_nlink;
+			inodes = buffer.st_ino; //preguntar orden y inodes(pdf distinto)
+			owner = buffer.st_uid;
+			group = buffer.st_gid;
+			mode = buffer.st_mode;
+			size = buffer.st_size;  //preguntar uso de ->					
+			mt = buffer.st_mtime;
+			at = buffer.st_atime;			
+			perm =(char *) malloc (12);
+			ConvierteModo(mode, perm);
+	
+			if(lonG && !linK){
+				localtime_r(&mt, &tm);
+				printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);
+				printf(" (%d) %8d %s %s %s%6d %s\n", nlinks, inodes, getpwuid(owner)->pw_name, getgrgid(group)->gr_name, perm, size, fName);
+				free(perm);
+				
+			}else if (lonG && linK){
+				localtime_r(&mt, &tm);
+				toLink =(char *) malloc (sizeof(char));
+				readlink(fName, toLink, 1000);  
+			
+				printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);
+				printf(" (%d) %8d %s %s %s%6d %s", nlinks, inodes, getpwuid(owner)->pw_name, getgrgid(group)->gr_name, perm, size, fName);
+				if(S_ISLNK(buffer.st_mode))
+					printf("->%s", toLink);
+				printf("\n");
+				free(perm);	
+				free(toLink);
+				
+			}else if (acC){
+				localtime_r(&at, &tm);
+				printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);
+				printf(" (%d) %8d %s %s %s%6d %s\n", nlinks, inodes, getpwuid(owner)->pw_name, getgrgid(group)->gr_name, perm, size, fName);
+				free(perm);					
+			}
+			
+}
 }
 
 void cmd_autores (char *tr[])
@@ -281,19 +343,18 @@ void cmd_borrarrec(char *tr[])
 
 void cmd_listfich(char *tr[])
 {
+	
 	char dir[MAXLINEA];
 	struct stat buffer;
-	int i, size, nlinks, inodes, mode, owner, group;
-	time_t at, mt;
-	struct tm tm;
-	char * perm, * toLink;	
+	int i, size;
+		
     
     if ((tr[0] == NULL) || ((!strcmp(tr[0], "-long") || !strcmp(tr[0], "-acc")) && (tr[1] == NULL))) 
         printf("%s\n", getcwd(dir, MAXLINEA));
     else if (strcmp(tr[0], "-long") && strcmp(tr[0], "-acc")){ 
 		for (i=0; tr[i] != NULL; i++){
 			if(lstat(tr[i], &buffer) == -1)
-				perror("Error");
+				printf("It is not possible to access %s: %s\n", tr[i], strerror(errno));
 			else {
 			size = buffer.st_size;
 			printf("%d %s\n", size, tr[i]);
@@ -304,181 +365,74 @@ void cmd_listfich(char *tr[])
 		for (i=1; tr[i] != NULL; i++){
 			if(!strcmp(tr[1], "-link") && i == 1) 
 				i = 2;
-			if(lstat(tr[i], &buffer) == -1)
-				perror("Error");
-			else{
-			nlinks = buffer.st_nlink;
-			inodes = buffer.st_ino; //preguntar orden y inodes(pdf distinto)
-			owner = buffer.st_uid;
-			group = buffer.st_gid;
-			mode = buffer.st_mode;
-			size = buffer.st_size;  //preguntar uso de ->					
-			mt = buffer.st_mtime;
-			at = buffer.st_atime;			
-			perm =(char *) malloc (12);
-			ConvierteModo(mode, perm);
-			
-			if(!strcmp(tr[0], "-long") && strcmp(tr[1], "-link")){
-				localtime_r(&mt, &tm);
-				printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);
-				printf(" (%d) %8d %s %s %s%6d %s\n", nlinks, inodes, getpwuid(owner)->pw_name, getgrgid(group)->gr_name, perm, size, tr[i]);
-				free(perm);
-				
-			}else if (!strcmp(tr[0], "-long") && !strcmp(tr[1], "-link")){
-				localtime_r(&mt, &tm);
-				toLink =(char *) malloc (sizeof(char));
-				readlink(tr[i], toLink, 1000);  
-			
-				printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);
-				printf(" (%d) %8d %s %s %s%6d %s", nlinks, inodes, getpwuid(owner)->pw_name, getgrgid(group)->gr_name, perm, size, tr[i]);
-				if(S_ISLNK(buffer.st_mode))
-					printf("->%s", toLink);
-				printf("\n");
-				free(perm);	
-				free(toLink);
-				
-			}else if (!strcmp(tr[0], "-acc")){
-				localtime_r(&at, &tm);
-				printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);
-				printf(" (%d) %8d %s %s %s%6d %s\n", nlinks, inodes, getpwuid(owner)->pw_name, getgrgid(group)->gr_name, perm, size, tr[i]);
-				free(perm);					
-			}
-		}
+			printFILE(tr[i], !strcmp(tr[1], "-link"), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), false);
 		}
 	}
+	
 }
+
+	
 	
 void cmd_listdir(char *tr[])
 {
 	char dir[MAXLINEA];
 	struct stat buffer;
-	struct stat buffer2;
-	int i, j, k=0, size, nlinks, inodes, mode, owner, group, sizedir = 0; 
-	time_t at, mt;
-	struct tm tm;
-	char * perm, * toLink;
+	int i, size;
+	getcwd(dir, MAXLINEA);
 	DIR * dirc;
-	struct dirent * entry;
-	bool isPerror;
+	struct dirent *ent;
+	dirc = malloc(sizeof(DIR *));
+	ent = malloc(sizeof(struct dirent));
     
-    if ((tr[0] == NULL) || ((!strcmp(tr[0], "-reca") || !strcmp(tr[0], "-recb") || !strcmp(tr[0], "-hid") || 
-    !strcmp(tr[0], "-long") || !strcmp(tr[0], "-acc")) && (tr[1] == NULL))) 
-        printf("%s\n", getcwd(dir, MAXLINEA));
-    else if (strcmp(tr[0], "-reca") && strcmp(tr[0], "-recb") && strcmp(tr[0], "-hid") && strcmp(tr[0], "-long") && strcmp(tr[0], "-acc")){ 
+    if ((tr[0] == NULL) || ((!strcmp(tr[0], "-long") || !strcmp(tr[0], "-acc")) && (tr[1] == NULL))) 
+        printf("%s\n", dir);
+    else if (strcmp(tr[0], "-long") && strcmp(tr[0], "-acc")){ 
 		for (i=0; tr[i] != NULL; i++){
 			if(lstat(tr[i], &buffer) == -1)
-				perror("Error");
-			else {
+				printf("It is not possible to access %s: %s\n", tr[i], strerror(errno));
+			else if (!S_ISREG(buffer.st_mode)){
+				if ((dirc = opendir(tr[i])) == NULL)
+						printf("It is not possible to access %s: %s\n", tr[i], strerror(errno));
+					else{
+						printf("*** %s ***\n", tr[i]);
+						chdir(tr[i]);
+						while ((ent = readdir (dirc)) != NULL){
+							printFILE(ent->d_name, !strcmp(tr[1], "-link"), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), true);
+					}	
+				}
+				closedir(dirc);
+				chdir(dir);
+			}else {
 			size = buffer.st_size;
 			printf("%d %s\n", size, tr[i]);
 			}
 		} 
 	}else if(!strcmp(tr[0], "-long") || !strcmp(tr[0], "-acc")){
 		
-		for (i=1; tr[i] != NULL; i++){		
+		for (i=1; tr[i] != NULL; i++){
 			if(!strcmp(tr[1], "-link") && i == 1) 
 				i = 2;
-			if(lstat(tr[i], &buffer) == -1){
-				perror("Error");
-				isPerror = true;
-			}
-			else if(S_ISDIR(buffer.st_mode)){
-				dirc = opendir(tr[i]);
-				
-			while ((entry = readdir(dirc)) != NULL)
-					sizedir++;
-			char directory[sizedir];
-			while ((entry = readdir(dirc)) != NULL){
-					directory[k] = entry->d_name;
-					k++;
-				}
-				
-				for(j=0; j < sizedir; j++){
-					
-					lstat(directory[j],&buffer2);					
-					nlinks = buffer2.st_nlink;
-					inodes = buffer2.st_ino; //preguntar orden y inodes(pdf distinto)
-					owner = buffer2.st_uid;
-					group = buffer2.st_gid;
-					mode = buffer2.st_mode;
-					size = buffer2.st_size;  //preguntar uso de ->					
-					mt = buffer2.st_mtime;
-					at = buffer2.st_atime;			
-					perm =(char *) malloc (12);
-					ConvierteModo(mode, perm);
-			
-					if(!strcmp(tr[0], "-long") && strcmp(tr[1], "-link")){
-						localtime_r(&mt, &tm);
-						printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);
-						printf(" (%d) %8d %s %s %s%6d %s\n", nlinks, inodes, getpwuid(owner)->pw_name, getgrgid(group)->gr_name, perm, size, directory[j]);
-						free(perm);
-				
-					}else if (!strcmp(tr[0], "-long") && !strcmp(tr[1], "-link")){
-						localtime_r(&mt, &tm);
-						toLink =(char *) malloc (sizeof(char));
-						readlink(directory[j], toLink, 1000);  
-			
-						printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);
-						printf(" (%d) %8d %s %s %s%6d %s", nlinks, inodes, getpwuid(owner)->pw_name, getgrgid(group)->gr_name, perm, size, directory[j]);
-						if(S_ISLNK(buffer2.st_mode))
-							printf("->%s", toLink);
-						printf("\n");
-						free(perm);	
-						free(toLink);
-				
-					}else if (!strcmp(tr[0], "-acc")){
-						localtime_r(&at, &tm);
-						printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);
-						printf(" (%d) %8d %s %s %s%6d %s\n", nlinks, inodes, getpwuid(owner)->pw_name, getgrgid(group)->gr_name, perm, size, directory[j]);
-						free(perm);					
+			if(lstat(tr[i], &buffer) == -1)
+				printf("It is not possible to access %s: %s\n", tr[i], strerror(errno));
+			else if (!S_ISREG(buffer.st_mode)){
+				if ((dirc = opendir(tr[i])) == NULL)
+						printf("It is not possible to access %s: %s\n", tr[i], strerror(errno));
+					else{
+						printf("*** %s ***\n", tr[i]);
+						chdir(tr[i]);
+						while ((ent = readdir (dirc)) != NULL){
+							printFILE(ent->d_name, !strcmp(tr[1], "-link"), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), false);
 					}	
 				}
-			
-				
-			
-			if(!isPerror){
-			nlinks = buffer.st_nlink;
-			inodes = buffer.st_ino; //preguntar orden y inodes(pdf distinto)
-			owner = buffer.st_uid;
-			group = buffer.st_gid;
-			mode = buffer.st_mode;
-			size = buffer.st_size;  //preguntar uso de ->					
-			mt = buffer.st_mtime;
-			at = buffer.st_atime;			
-			perm =(char *) malloc (12);
-			ConvierteModo(mode, perm);
-			
-			if(!strcmp(tr[0], "-long") && strcmp(tr[1], "-link")){
-				localtime_r(&mt, &tm);
-				printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);
-				printf(" (%d) %8d %s %s %s%6d %s\n", nlinks, inodes, getpwuid(owner)->pw_name, getgrgid(group)->gr_name, perm, size, tr[i]);
-				free(perm);
-				
-			}else if (!strcmp(tr[0], "-long") && !strcmp(tr[1], "-link")){
-				localtime_r(&mt, &tm);
-				toLink =(char *) malloc (sizeof(char));
-				readlink(tr[i], toLink, 1000);  
-			
-				printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);
-				printf(" (%d) %8d %s %s %s%6d %s", nlinks, inodes, getpwuid(owner)->pw_name, getgrgid(group)->gr_name, perm, size, tr[i]);
-				if(S_ISLNK(buffer.st_mode))
-					printf("->%s", toLink);
-				printf("\n");
-				free(perm);	
-				free(toLink);
-				
-			}else if (!strcmp(tr[0], "-acc")){
-				localtime_r(&at, &tm);
-				printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);
-				printf(" (%d) %8d %s %s %s%6d %s\n", nlinks, inodes, getpwuid(owner)->pw_name, getgrgid(group)->gr_name, perm, size, tr[i]);
-				free(perm);					
+				closedir(dirc);
+				chdir(dir);
+				} else {
+				printFILE(tr[i], !strcmp(tr[1], "-link"), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), false);
 			}
-		}
-		}
+		}	
 	}
-	}
-	
 }
+
 
 int trocearCadena ( char *cadena, char *trozos[])
 {
@@ -526,3 +480,4 @@ int main()
 
     return 0;
 }
+
