@@ -105,9 +105,9 @@ char * ConvierteModo (mode_t m, char *permisos)
 }
 
 
-void printFILE(char *fName, bool linK, bool lonG, bool acC, bool dirSz){
+void printFILE(char *fName, bool linK, bool lonG, bool acC, bool hiD, bool dirSz){
 	
-	
+	if(!(!hiD && fName[0] == '.')){
 	int size, nlinks, inodes, mode, owner, group;
 	time_t at, mt;
 	struct tm tm;
@@ -160,6 +160,7 @@ void printFILE(char *fName, bool linK, bool lonG, bool acC, bool dirSz){
 				free(perm);					
 			}
 			
+}
 }
 }
 
@@ -365,7 +366,7 @@ void cmd_listfich(char *tr[])
 		for (i=1; tr[i] != NULL; i++){
 			if(!strcmp(tr[1], "-link") && i == 1) 
 				i = 2;
-			printFILE(tr[i], !strcmp(tr[1], "-link"), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), false);
+			printFILE(tr[i], !strcmp(tr[1], "-link"), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), (!strcmp(tr[0], "-hid")||!strcmp(tr[1], "-hid")||!strcmp(tr[2], "-hid")), false);
 		}
 	}
 	
@@ -397,7 +398,7 @@ void cmd_listdir(char *tr[])
 						printf("*** %s ***\n", tr[i]);
 						chdir(tr[i]);
 						while ((ent = readdir (dirc)) != NULL){
-							printFILE(ent->d_name, !strcmp(tr[1], "-link"), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), true);
+							printFILE(ent->d_name, !strcmp(tr[1], "-link"), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), (!strcmp(tr[0], "-hid")||!strcmp(tr[1], "-hid")||!strcmp(tr[2], "-hid")), true);
 					}	
 				}
 				closedir(dirc);
@@ -421,13 +422,13 @@ void cmd_listdir(char *tr[])
 						printf("*** %s ***\n", tr[i]);
 						chdir(tr[i]);
 						while ((ent = readdir (dirc)) != NULL){
-							printFILE(ent->d_name, !strcmp(tr[1], "-link"), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), false);
+							printFILE(ent->d_name, !strcmp(tr[1], "-link"), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), (!strcmp(tr[0], "-hid")||!strcmp(tr[1], "-hid")||!strcmp(tr[2], "-hid")), false);
 					}	
 				}
 				closedir(dirc);
 				chdir(dir);
 				} else {
-				printFILE(tr[i], !strcmp(tr[1], "-link"), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), false);
+					printFILE(tr[i], !strcmp(tr[1], "-link"), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), (!strcmp(tr[0], "-hid")||!strcmp(tr[1], "-hid")||!strcmp(tr[2], "-hid")), false);
 			}
 		}	
 	}
