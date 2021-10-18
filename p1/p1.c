@@ -382,10 +382,12 @@ void cmd_listdir(char *tr[])
 	getcwd(dir, MAXLINEA);
 	DIR * dirc;
 	struct dirent *ent;
-	bool hid = (!strcmp(tr[0], "-hid")) || ((!strcmp(tr[0], "-long")|| !strcmp(tr[0], "-acc")) && !strcmp(tr[1], "-hid")) || (((!strcmp(tr[0], "-long") || !strcmp(tr[0], "-acc")) &&  (!strcmp(tr[1], "-link"))) && !strcmp(tr[2], "-hid"));
 	dirc = malloc(sizeof(DIR *));
 	ent = malloc(sizeof(struct dirent*));
-    
+	bool hid = false;
+	if ((tr[0] != NULL))
+		hid = (!strcmp(tr[0], "-hid")) || ((!strcmp(tr[0], "-long")|| !strcmp(tr[0], "-acc")) && !strcmp(tr[1], "-hid")) || (((!strcmp(tr[0], "-long") || !strcmp(tr[0], "-acc")) &&  (!strcmp(tr[1], "-link"))) && !strcmp(tr[2], "-hid"));
+	
     if ((tr[0] == NULL) || ((!strcmp(tr[0], "-long") || !strcmp(tr[0], "-acc") ||!strcmp(tr[0], "-hid")) && (tr[1] == NULL))) 
         printf("%s\n", dir);
     else if (strcmp(tr[0], "-long") && strcmp(tr[0], "-acc")){ 
@@ -460,6 +462,7 @@ void cmd_listdir(char *tr[])
 			}
 		}	
 	}
+	free(ent);
 }
 
 
