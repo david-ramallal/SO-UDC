@@ -364,9 +364,9 @@ void cmd_listfich(char *tr[])
 	}else if(!strcmp(tr[0], "-long") || !strcmp(tr[0], "-acc")){
 		
 		for (i=1; tr[i] != NULL; i++){
-			if(!strcmp(tr[1], "-link") && i == 1) 
+			if(i == 1 && !strcmp(tr[1], "-link")) 
 				i = 2;
-			printFILE(tr[i], !strcmp(tr[1], "-link"), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), (!strcmp(tr[0], "-hid")||!strcmp(tr[1], "-hid")||!strcmp(tr[2], "-hid")), false);
+			printFILE(tr[i], !strcmp(tr[1], "-link"), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), false, false);
 		}
 	}
 	
@@ -382,59 +382,81 @@ void cmd_listdir(char *tr[])
 	getcwd(dir, MAXLINEA);
 	DIR * dirc;
 	struct dirent *ent;
+	bool hid = (!strcmp(tr[0], "-hid")) || ((!strcmp(tr[0], "-long")|| !strcmp(tr[0], "-acc")) && !strcmp(tr[1], "-hid")) || (((!strcmp(tr[0], "-long") || !strcmp(tr[0], "-acc")) &&  (!strcmp(tr[1], "-link"))) && !strcmp(tr[2], "-hid"));
 	dirc = malloc(sizeof(DIR *));
-	ent = malloc(sizeof(struct dirent));
+	ent = malloc(sizeof(struct dirent*));
     
-    if ((tr[0] == NULL) || ((!strcmp(tr[0], "-long") || !strcmp(tr[0], "-acc")) && (tr[1] == NULL))) 
+    if ((tr[0] == NULL) || ((!strcmp(tr[0], "-long") || !strcmp(tr[0], "-acc") ||!strcmp(tr[0], "-hid")) && (tr[1] == NULL))) 
         printf("%s\n", dir);
     else if (strcmp(tr[0], "-long") && strcmp(tr[0], "-acc")){ 
 		for (i=0; tr[i] != NULL; i++){
-			if(!strcmp(tr[0], "-hid") && i == 0) 
-				i = 1;
+			if(i == 0 && !strcmp(tr[0], "-hid")){ 
+				if(tr[1] == NULL)
+					break;
+				else
+					i = 1;
+			}
+			
 			if(lstat(tr[i], &buffer) == -1)
 				printf("It is not possible to access %s: %s\n", tr[i], strerror(errno));
-			else if (!S_ISREG(buffer.st_mode)){
-				if ((dirc = opendir(tr[i])) == NULL)
+			else if (!S_ISREG(buffer.st_mode) && !S_ISLNK(buffer.st_mode)){
+				if ((dirc = opendir(tr[i])) == NULL){
 						printf("It is not possible to access %s: %s\n", tr[i], strerror(errno));
-					else{
+					}else{
 						printf("*** %s ***\n", tr[i]);
 						chdir(tr[i]);
 						while ((ent = readdir (dirc)) != NULL){
-							printFILE(ent->d_name, !strcmp(tr[1], "-link"), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), (!strcmp(tr[0], "-hid")||!strcmp(tr[1], "-hid")||!strcmp(tr[2], "-hid")), true);
+							printFILE(ent->d_name, (!strcmp(tr[0], "-long") && !strcmp(tr[1], "-link")), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), hid, true);
+							
 					}
 					closedir(dirc);
-					chdir(dir);
-					free(ent);	
+						
 				}
 				
+					chdir(dir);
 			}else {
 			size = buffer.st_size;
 			printf("%d %s\n", size, tr[i]);
 			}
-		} 
+			
+		
+	}
 	}else if(!strcmp(tr[0], "-long") || !strcmp(tr[0], "-acc")){
 		
 		for (i=1; tr[i] != NULL; i++){
-			if((!strcmp(tr[1], "-link") || !strcmp(tr[1], "-hid")) && i == 1) 
-				i = 2;
-			if(!strcmp(tr[2], "-hid") && i ==2)
-				i = 3;
+			if(i == 1 && (!strcmp(tr[1], "-link") || !strcmp(tr[1], "-hid"))){
+				if(tr[2] == NULL)
+					break;
+				else
+					i = 2;
+			}
+			if(i == 2 && (!strcmp(tr[2], "-hid")) ){
+				if(tr[3] == NULL)
+					break;
+				else
+					i = 3;
+			}
+			
 			if(lstat(tr[i], &buffer) == -1)
 				printf("It is not possible to access %s: %s\n", tr[i], strerror(errno));
-			else if (!S_ISREG(buffer.st_mode)){
-				if ((dirc = opendir(tr[i])) == NULL)
+			else if (!S_ISREG(buffer.st_mode) && !S_ISLNK(buffer.st_mode)){
+				if ((dirc = opendir(tr[i])) == NULL){
 						printf("It is not possible to access %s: %s\n", tr[i], strerror(errno));
-					else{
+					}else{
 						printf("*** %s ***\n", tr[i]);
 						chdir(tr[i]);
 						while ((ent = readdir (dirc)) != NULL){
-							printFILE(ent->d_name, !strcmp(tr[1], "-link"), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), (!strcmp(tr[0], "-hid")||!strcmp(tr[1], "-hid")||!strcmp(tr[2], "-hid")), false);
+							printFILE(ent->d_name, !strcmp(tr[1], "-link"), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), hid, false);
+							
+					
 					}	
+					chdir(dir);
+					closedir(dirc);
 				}
-				closedir(dirc);
-				chdir(dir);
+				
+				
 				} else {
-					printFILE(tr[i], !strcmp(tr[1], "-link"), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), (!strcmp(tr[0], "-hid")||!strcmp(tr[1], "-hid")||!strcmp(tr[2], "-hid")), false);
+					printFILE(tr[i], !strcmp(tr[1], "-link"), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), hid , false);
 			}
 		}	
 	}
