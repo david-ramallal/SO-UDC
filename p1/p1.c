@@ -105,7 +105,7 @@ char * ConvierteModo (mode_t m, char *permisos)
 }
 
 
-void printFILE(char *fName, bool linK, bool lonG, bool acC, bool hiD, bool dirSz){
+void printFILE(char *fName, bool linK, bool lonG, bool acC, bool hiD, bool dirSz, bool recA, bool recB){
 	
 	if(!(!hiD && fName[0] == '.')){
 	int size, nlinks, inodes, mode, owner, group;
@@ -113,6 +113,12 @@ void printFILE(char *fName, bool linK, bool lonG, bool acC, bool hiD, bool dirSz
 	struct tm tm;
 	char * perm, * toLink;
 	struct stat buffer;
+	DIR * dirc;
+	struct dirent *ent;
+	dirc = malloc(sizeof(DIR *));
+	ent = malloc(sizeof(struct dirent*));
+	char dir[MAXLINEA];
+	getcwd(dir, MAXLINEA);
 	
 
 	
@@ -160,8 +166,32 @@ void printFILE(char *fName, bool linK, bool lonG, bool acC, bool hiD, bool dirSz
 				free(perm);					
 			}
 			
-}
-}
+			if(S_ISDIR(buffer.st_mode)){
+			if(recA){
+				if ((dirc = opendir(fName)) == NULL){
+						printf("It is not possible to access %s: %s\n", fName, strerror(errno));
+					}else{
+						printf("*** %s ***\n", fName);
+						chdir(fName);
+						while ((ent = readdir (dirc)) != NULL){
+							if(fName[0] != '.')
+							printFILE(ent->d_name, linK, lonG, acC, hiD, dirSz, recA, recB);
+					}
+					closedir(dirc);
+						
+				}
+				
+					chdir(dir);
+					
+			}else if(recB){
+				
+			}
+				
+				
+			
+			}
+		}
+	}
 }
 
 void cmd_autores (char *tr[])
@@ -366,7 +396,7 @@ void cmd_listfich(char *tr[])
 		for (i=1; tr[i] != NULL; i++){
 			if(i == 1 && !strcmp(tr[1], "-link")) 
 				i = 2;
-			printFILE(tr[i], !strcmp(tr[1], "-link"), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), false, false);
+			printFILE(tr[i], !strcmp(tr[1], "-link"), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), false, false, false, false);
 		}
 	}
 	
@@ -378,39 +408,62 @@ void cmd_listdir(char *tr[])
 {
 	char dir[MAXLINEA];
 	struct stat buffer;
-	int i, size;
+	int i, size, j, countTRUE = 0;
 	getcwd(dir, MAXLINEA);
 	DIR * dirc;
 	struct dirent *ent;
 	dirc = malloc(sizeof(DIR *));
 	ent = malloc(sizeof(struct dirent*));
-	bool hid = false;
-	if ((tr[0] != NULL))
-		hid = (!strcmp(tr[0], "-hid")) || ((!strcmp(tr[0], "-long")|| !strcmp(tr[0], "-acc")) && !strcmp(tr[1], "-hid")) || (((!strcmp(tr[0], "-long") || !strcmp(tr[0], "-acc")) &&  (!strcmp(tr[1], "-link"))) && !strcmp(tr[2], "-hid"));
+	bool linK, lonG, acC, hiD, recA, recB;
 	
-    if ((tr[0] == NULL) || ((!strcmp(tr[0], "-long") || !strcmp(tr[0], "-acc") ||!strcmp(tr[0], "-hid")) && (tr[1] == NULL))) 
+	for(j = 0; tr[j] != NULL; j++){
+		if(!strcmp(tr[j], "-long")){
+			lonG = true;
+			countTRUE++;
+		 }else if(!strcmp(tr[j], "-link")){
+			linK = true;
+			countTRUE++;
+		}else if(!strcmp(tr[j], "-acc")){
+			acC = true;
+			countTRUE++;
+		 }else if(!strcmp(tr[j], "-hid")){
+			hiD = true;
+			countTRUE++;
+		}else if(!strcmp(tr[j], "-reca")){
+			recA = true;
+			countTRUE++;
+		}else if(!strcmp(tr[j], "-recb")){
+			recB = true;
+			countTRUE++;
+		}
+	}
+	
+	//hacer caso long acc juntos -> prioridad acc
+	
+	
+    if (tr[countTRUE] == NULL) 
         printf("%s\n", dir);
-    else if (strcmp(tr[0], "-long") && strcmp(tr[0], "-acc")){ 
+    else if (!lonG && !acC){ 
 		for (i=0; tr[i] != NULL; i++){
-			if(i == 0 && !strcmp(tr[0], "-hid")){ 
-				if(tr[1] == NULL)
-					break;
-				else
-					i = 1;
+			if(i == 0 && (hiD||recA||recB||linK)){ 
+				if(tr[countTRUE] == NULL) break;
+				else i = countTRUE;
 			}
 			
-			if(lstat(tr[i], &buffer) == -1)
-				printf("It is not possible to access %s: %s\n", tr[i], strerror(errno));
-			else if (!S_ISREG(buffer.st_mode) && !S_ISLNK(buffer.st_mode)){
+			if(lstat(tr[i], &buffer) == -1){
+				if(strcmp(tr[i], "-reca"))
+					printf("It is not possible to access %s: %s\n", tr[i], strerror(errno));
+			}else if (!S_ISREG(buffer.st_mode) && !S_ISLNK(buffer.st_mode)){
 				if ((dirc = opendir(tr[i])) == NULL){
+						if(strcmp(tr[i], "-reca"))
 						printf("It is not possible to access %s: %s\n", tr[i], strerror(errno));
 					}else{
 						printf("*** %s ***\n", tr[i]);
 						chdir(tr[i]);
 						while ((ent = readdir (dirc)) != NULL){
-							printFILE(ent->d_name, (!strcmp(tr[0], "-long") && !strcmp(tr[1], "-link")), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), hid, true);
-							
+							printFILE(ent->d_name, linK, lonG, acC, hiD, true, recA, recB);
 					}
+					
 					closedir(dirc);
 						
 				}
@@ -420,45 +473,45 @@ void cmd_listdir(char *tr[])
 			size = buffer.st_size;
 			printf("%d %s\n", size, tr[i]);
 			}
-			
+		}
 		
-	}
-	}else if(!strcmp(tr[0], "-long") || !strcmp(tr[0], "-acc")){
+	}else if(lonG || acC){
 		
 		for (i=1; tr[i] != NULL; i++){
-			if(i == 1 && (!strcmp(tr[1], "-link") || !strcmp(tr[1], "-hid"))){
+			if(i == 1 && (linK || hiD)){
 				if(tr[2] == NULL)
 					break;
 				else
 					i = 2;
 			}
-			if(i == 2 && (!strcmp(tr[2], "-hid")) ){
+			if(i == 2 && hiD ){
 				if(tr[3] == NULL)
 					break;
 				else
 					i = 3;
 			}
 			
-			if(lstat(tr[i], &buffer) == -1)
+			if(lstat(tr[i], &buffer) == -1){
+					if(strcmp(tr[i], "-reca"))
 				printf("It is not possible to access %s: %s\n", tr[i], strerror(errno));
-			else if (!S_ISREG(buffer.st_mode) && !S_ISLNK(buffer.st_mode)){
+			}else if (!S_ISREG(buffer.st_mode) && !S_ISLNK(buffer.st_mode)){
 				if ((dirc = opendir(tr[i])) == NULL){
+							if(strcmp(tr[i], "-reca"))
 						printf("It is not possible to access %s: %s\n", tr[i], strerror(errno));
 					}else{
 						printf("*** %s ***\n", tr[i]);
 						chdir(tr[i]);
 						while ((ent = readdir (dirc)) != NULL){
-							printFILE(ent->d_name, !strcmp(tr[1], "-link"), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), hid, false);
-							
+							printFILE(ent->d_name, linK, lonG, acC, hiD, false, recA, recB);
+					}
 					
-					}	
-					chdir(dir);
 					closedir(dirc);
-				}
 				
+			}
+				chdir(dir);
 				
 				} else {
-					printFILE(tr[i], !strcmp(tr[1], "-link"), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), hid , false);
+					printFILE(tr[i], linK, lonG, acC, hiD , false, recA, recB);
 			}
 		}	
 	}
