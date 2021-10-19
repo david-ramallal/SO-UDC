@@ -174,12 +174,11 @@ void printFILE(char *fName, bool linK, bool lonG, bool acC, bool hiD, bool dirSz
 			
 			
 			if(!S_ISREG(buffer.st_mode) && !S_ISLNK(buffer.st_mode)){
-				if(recA){
+				if(recA && fName[0] != '.'){
 					if ((dirc = opendir(fName)) != NULL){
 						printf("*** %s ***\n", fName);
 						chdir(fName);
 						while ((ent = readdir (dirc)) != NULL){
-							if(fName[0] != '.')
 							printFILE(ent->d_name, linK, lonG, acC, hiD, dirSz, recA, recB, 1);
 					}
 					closedir(dirc);
