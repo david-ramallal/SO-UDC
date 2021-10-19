@@ -108,7 +108,7 @@ char * ConvierteModo (mode_t m, char *permisos)
 void printFILE(char *fName, bool linK, bool lonG, bool acC, bool hiD, bool dirSz, bool recA, bool recB, int conTROL){
 	
 	if(!(!hiD && fName[0] == '.')){
-	int size, nlinks, inodes, mode, owner, group;
+	int size = 0, nlinks = 0, inodes = 0, mode = 0, owner = 0, group = 0;
 	time_t at, mt;
 	struct tm tm;
 	char * perm, * toLink;
@@ -117,6 +117,8 @@ void printFILE(char *fName, bool linK, bool lonG, bool acC, bool hiD, bool dirSz
 	struct dirent *ent;
 	dirc = malloc(sizeof(DIR *));
 	ent = malloc(sizeof(struct dirent*));
+	perm = NULL;
+	toLink = NULL;
 	char dir[MAXLINEA];
 	getcwd(dir, MAXLINEA);
 	
@@ -176,16 +178,18 @@ void printFILE(char *fName, bool linK, bool lonG, bool acC, bool hiD, bool dirSz
 			if(!S_ISREG(buffer.st_mode) && !S_ISLNK(buffer.st_mode)){
 				if(recA && fName[0] != '.'){
 					if ((dirc = opendir(fName)) != NULL){
-						printf("*** %s ***\n", fName);
+							printf("*** %s ***\n", fName);
 						chdir(fName);
 						while ((ent = readdir (dirc)) != NULL){
 							printFILE(ent->d_name, linK, lonG, acC, hiD, dirSz, recA, recB, 1);
 					}
 					closedir(dirc);
+					free(ent);
 						
 				}
 				
 					chdir(dir);
+				
 					
 			}else if(recB){
 				
@@ -194,9 +198,56 @@ void printFILE(char *fName, bool linK, bool lonG, bool acC, bool hiD, bool dirSz
 				
 			
 			}
+			//free(ent);
 		
 		}
+		
 	}
+	
+	
+}
+
+void delete(char *fileName)
+{
+      if(rmdir(fileName) == -1){
+        if(unlink(fileName) == -1)
+          perror("Cannot remove");
+      }
+}
+
+void deleteRec(char *fileName)
+{
+    char dir[MAXLINEA];
+    getcwd(dir, MAXLINEA);
+    DIR * dirc;
+    struct dirent *ent;
+    dirc = malloc(sizeof(DIR *));
+    ent = malloc(sizeof(struct dirent*));
+    struct stat buffer;
+   
+   
+     if(lstat(fileName, &buffer) == -1)
+          printf("It is not possible to delete %s: %s\n", fileName, strerror(errno));
+     else{
+        if (S_ISDIR(buffer.st_mode)){ 
+          if((dirc = opendir(fileName)) == NULL)
+        printf("It is not possible to delete %s: %s\n", fileName, strerror(errno));
+          else{
+            chdir(fileName);
+            while ((ent = readdir (dirc)) != NULL){
+              if(!strcmp(ent->d_name, ".") || !strcmp(ent->d_name, ".."))
+                  continue;
+              else  
+                   deleteRec(ent->d_name);
+            }        
+            closedir(dirc);            
+          }
+          chdir(dir);
+          delete(fileName);
+        }else
+          delete(fileName);
+  }
+  
 }
 
 void cmd_autores (char *tr[])
@@ -351,30 +402,40 @@ void cmd_crear(char *tr[])
 
 void cmd_borrar(char *tr[])
 {
+	int i;
     char dir[MAXLINEA];
-    int i;
     
     if (tr[0] == NULL)
         printf("%s\n", getcwd(dir, MAXLINEA));
-    else {
-		for (i=0; tr[i] != NULL; i++){
-			if(rmdir(tr[i]) == -1){
-				if(unlink(tr[i]) == -1)
-					perror("Cannot remove");
-			}
-		}	
+    else{
+    	for (i=0; tr[i] != NULL; i++){
+    		delete(tr[i]);
+    		}
 	}
 }
 
 void cmd_borrarrec(char *tr[])
 {
     char dir[MAXLINEA];
+    struct stat buffer;
+    int i;
     
     if (tr[0] == NULL) 
         printf("%s\n", getcwd(dir, MAXLINEA));
-    else{
-	}
-    
+    else{ 
+    for (i=0; tr[i] != NULL; i++){
+      if(!strcmp(tr[i], ".") || !strcmp(tr[i], ".."))
+        continue;
+      else{
+        if(lstat(tr[i], &buffer) == -1)
+          printf("It is not possible to delete %s: %s\n", tr[i], strerror(errno));
+        else if (!S_ISREG(buffer.st_mode) && !S_ISLNK(buffer.st_mode))
+            deleteRec(tr[i]);
+        else
+          delete(tr[i]);  
+      }    
+    } 
+    }
 }
 
 void cmd_listfich(char *tr[])
@@ -413,13 +474,13 @@ void cmd_listdir(char *tr[])
 {
 	char dir[MAXLINEA];
 	struct stat buffer;
-	int i, size, j, countTRUE = 0, conTROL = 0;
+	int i = 0, size = 0, j = 0, countTRUE = 0, conTROL = 0;
 	getcwd(dir, MAXLINEA);
 	DIR * dirc;
 	struct dirent *ent;
 	dirc = malloc(sizeof(DIR *));
 	ent = malloc(sizeof(struct dirent*));
-	bool linK, lonG, acC, hiD, recA, recB;
+	bool linK = false, lonG = false, acC = false, hiD = false, recA = false, recB = false;
 	
 	for(j = 0; tr[j] != NULL; j++){
 		if(!strcmp(tr[j], "-long")){
@@ -560,7 +621,7 @@ void cmd_listdir(char *tr[])
 			
 			if (!S_ISREG(buffer.st_mode) && !S_ISLNK(buffer.st_mode)){
 				if ((dirc = opendir(tr[i])) != NULL){
-						if(conTROL !=0)
+						//if(conTROL !=0)
 							printf("*** %s ***\n", tr[i]);
 						chdir(tr[i]);
 						while ((ent = readdir (dirc)) != NULL){
