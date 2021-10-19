@@ -105,7 +105,7 @@ char * ConvierteModo (mode_t m, char *permisos)
 }
 
 
-void printFILE(char *fName, bool linK, bool lonG, bool acC, bool hiD, bool dirSz, bool recA, bool recB){
+void printFILE(char *fName, bool linK, bool lonG, bool acC, bool hiD, bool dirSz, bool recA, bool recB, int conTROL){
 	
 	if(!(!hiD && fName[0] == '.')){
 	int size, nlinks, inodes, mode, owner, group;
@@ -121,14 +121,14 @@ void printFILE(char *fName, bool linK, bool lonG, bool acC, bool hiD, bool dirSz
 	getcwd(dir, MAXLINEA);
 	
 
-	
+			if(conTROL == 1){
 			if(lstat(fName, &buffer) == -1)
 				printf("It is not possible to access %s: %s\n", fName, strerror(errno));
 			else if(dirSz){	
 				size = buffer.st_size;
 			printf("%d %s\n", size, fName);
 				
-			}else{
+			}else if (lonG || linK || acC){
 			nlinks = buffer.st_nlink;
 			inodes = buffer.st_ino; //preguntar orden y inodes(pdf distinto)
 			owner = buffer.st_uid;
@@ -163,19 +163,24 @@ void printFILE(char *fName, bool linK, bool lonG, bool acC, bool hiD, bool dirSz
 				localtime_r(&at, &tm);
 				printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);
 				printf(" (%d) %8d %s %s %s%6d %s\n", nlinks, inodes, getpwuid(owner)->pw_name, getgrgid(group)->gr_name, perm, size, fName);
-				free(perm);					
+				free(perm);		
+				
+				
+							
 			}
+		}
+		}else{
 			
-			if(S_ISDIR(buffer.st_mode)){
-			if(recA){
-				if ((dirc = opendir(fName)) == NULL){
-						printf("It is not possible to access %s: %s\n", fName, strerror(errno));
-					}else{
+			
+			
+			if(!S_ISREG(buffer.st_mode) && !S_ISLNK(buffer.st_mode)){
+				if(recA){
+					if ((dirc = opendir(fName)) != NULL){
 						printf("*** %s ***\n", fName);
 						chdir(fName);
 						while ((ent = readdir (dirc)) != NULL){
 							if(fName[0] != '.')
-							printFILE(ent->d_name, linK, lonG, acC, hiD, dirSz, recA, recB);
+							printFILE(ent->d_name, linK, lonG, acC, hiD, dirSz, recA, recB, 1);
 					}
 					closedir(dirc);
 						
@@ -190,6 +195,7 @@ void printFILE(char *fName, bool linK, bool lonG, bool acC, bool hiD, bool dirSz
 				
 			
 			}
+		
 		}
 	}
 }
@@ -396,7 +402,7 @@ void cmd_listfich(char *tr[])
 		for (i=1; tr[i] != NULL; i++){
 			if(i == 1 && !strcmp(tr[1], "-link")) 
 				i = 2;
-			printFILE(tr[i], !strcmp(tr[1], "-link"), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), false, false, false, false);
+			printFILE(tr[i], !strcmp(tr[1], "-link"), !strcmp(tr[0], "-long"), !strcmp(tr[0], "-acc"), false, false, false, false, 1);
 		}
 	}
 	
@@ -408,7 +414,7 @@ void cmd_listdir(char *tr[])
 {
 	char dir[MAXLINEA];
 	struct stat buffer;
-	int i, size, j, countTRUE = 0;
+	int i, size, j, countTRUE = 0, conTROL = 0;
 	getcwd(dir, MAXLINEA);
 	DIR * dirc;
 	struct dirent *ent;
@@ -461,9 +467,8 @@ void cmd_listdir(char *tr[])
 						printf("*** %s ***\n", tr[i]);
 						chdir(tr[i]);
 						while ((ent = readdir (dirc)) != NULL){
-							printFILE(ent->d_name, linK, lonG, acC, hiD, true, recA, recB);
-					}
-					
+							printFILE(ent->d_name, linK, lonG, acC, hiD, true, false, false, 1);
+					}				
 					closedir(dirc);
 						
 				}
@@ -474,6 +479,33 @@ void cmd_listdir(char *tr[])
 			printf("%d %s\n", size, tr[i]);
 			}
 		}
+		for (i=0; tr[i] != NULL; i++){
+			if(i == 0 && (hiD||recA||recB||linK)){ 
+				if(tr[countTRUE] == NULL) break;
+				else i = countTRUE;
+			}
+			
+			if (!S_ISREG(buffer.st_mode) && !S_ISLNK(buffer.st_mode)){
+				if ((dirc = opendir(tr[i])) != NULL){
+						if(conTROL !=0)
+							printf("*** %s ***\n", tr[i]);
+						chdir(tr[i]);
+						while ((ent = readdir (dirc)) != NULL){
+							printFILE(ent->d_name, linK, lonG, acC, hiD, true, recA, recB, 0);
+							
+					}				
+					closedir(dirc);
+					conTROL = 1;
+				}
+				
+					chdir(dir);
+			}else {
+			size = buffer.st_size;
+			printf("%d %s\n", size, tr[i]);
+			}
+		}
+		
+		
 		
 	}else if(lonG || acC){
 		
@@ -502,18 +534,50 @@ void cmd_listdir(char *tr[])
 						printf("*** %s ***\n", tr[i]);
 						chdir(tr[i]);
 						while ((ent = readdir (dirc)) != NULL){
-							printFILE(ent->d_name, linK, lonG, acC, hiD, false, recA, recB);
-					}
-					
+							printFILE(ent->d_name, linK, lonG, acC, hiD, false, false, false, 1);
+					}					
 					closedir(dirc);
 				
 			}
 				chdir(dir);
 				
 				} else {
-					printFILE(tr[i], linK, lonG, acC, hiD , false, recA, recB);
+					printFILE(tr[i], linK, lonG, acC, hiD , false, false, false, 1);
 			}
 		}	
+		for (i=1; tr[i] != NULL; i++){
+			if(i == 1 && (linK || hiD)){
+				if(tr[2] == NULL)
+					break;
+				else
+					i = 2;
+			}
+			if(i == 2 && hiD ){
+				if(tr[3] == NULL)
+					break;
+				else
+					i = 3;
+			}
+			
+			if (!S_ISREG(buffer.st_mode) && !S_ISLNK(buffer.st_mode)){
+				if ((dirc = opendir(tr[i])) != NULL){
+						if(conTROL !=0)
+							printf("*** %s ***\n", tr[i]);
+						chdir(tr[i]);
+						while ((ent = readdir (dirc)) != NULL){
+							printFILE(ent->d_name, linK, lonG, acC, hiD, false, recA, recB, 0);
+					}					
+					closedir(dirc);
+					conTROL = 1;
+			}
+				chdir(dir);
+			
+				
+				} else {
+				 printFILE(tr[i], linK, lonG, acC, hiD , false, recA, recB, 0);
+			}
+		}
+		
 	}
 	free(ent);
 }
@@ -565,4 +629,3 @@ int main()
 
     return 0;
 }
-
