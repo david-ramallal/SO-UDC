@@ -102,62 +102,108 @@ char * ConvierteModo (mode_t m, char *permisos)
 	return permisos;
 }
 
+char * owner_print(struct stat buffer)
+{
+	int owner;
+	owner = buffer.st_uid;
+	if (getpwuid(owner) == NULL)
+		return "???????";
+	else
+		return getpwuid(owner)->pw_name;	
+}
+
+char * group_print(struct stat buffer)
+{
+	int group;
+	group = buffer.st_uid;
+	if (getgrgid(group) == NULL)
+		return "???????";
+	else
+		return getgrgid(group)->gr_name;	
+}	
+
+int size_print(struct stat buffer)
+{
+	return buffer.st_size;	
+}	
+
+int inode_print(struct stat buffer)
+{
+	return buffer.st_ino;	
+}
+
+int nlinks_print(struct stat buffer)
+{
+	return buffer.st_nlink;	
+}	
+
+char * perm_print(struct stat buffer)
+{
+	int mode;
+	char * perm;
+	mode = buffer.st_mode;
+	perm =(char *) malloc (12);
+	ConvierteModo(mode, perm);
+	return perm;
+}
+
+void longTime_print(struct stat buffer)
+{
+	time_t mt;
+	struct tm tm;
+	mt = buffer.st_mtime;
+	localtime_r(&mt, &tm);
+	printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);				
+}
+
+void accTime_print(struct stat buffer)
+{
+	time_t at;
+	struct tm tm;
+	at = buffer.st_atime;
+	localtime_r(&at, &tm);
+	printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);	
+}
+
 void printFILE(char *fName, bool linK, bool lonG, bool acC, bool hiD, bool dirSz, bool recA, bool recB, int conTROL){
 	
 	if(!(!hiD && fName[0] == '.')){
-	int size, nlinks, inodes, mode, owner, group;
-	time_t at, mt;
-	struct tm tm;
-	char * perm, * toLink;
+	char * toLink;
 	struct stat buffer;
 	DIR * dirc;
 	struct dirent *ent;
 	dirc = malloc(sizeof(DIR *));
 	ent = malloc(sizeof(struct dirent*));
 	char dir[MAXLINEA];
-	getcwd(dir, MAXLINEA);
-	
+	getcwd(dir, MAXLINEA);	
 
 		if(conTROL == 1){
 			if(lstat(fName, &buffer) == -1)
 				printf("It is not possible to access %s: %s\n", fName, strerror(errno));
 			else if(dirSz){	
-				size = buffer.st_size;
-				printf("%d %s\n", size, fName);
+				printf("%d %s\n", size_print(buffer), fName);
 				
 			}else if (lonG || linK || acC){
-				nlinks = buffer.st_nlink;
-				inodes = buffer.st_ino; //preguntar orden y inodes(pdf distinto)
-				owner = buffer.st_uid;
-				group = buffer.st_gid;
-				mode = buffer.st_mode;
-				size = buffer.st_size;  //preguntar uso de ->					
-				mt = buffer.st_mtime;
-				at = buffer.st_atime;			
-				perm =(char *) malloc (12);
-				ConvierteModo(mode, perm);
+				//preguntar orden y inodes(pdf distinto)								
 				if(lonG && !linK){
-					localtime_r(&mt, &tm);
-					printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);
-					printf(" (%d) %8d %s %s %s%6d %s\n", nlinks, inodes, getpwuid(owner)->pw_name, getgrgid(group)->gr_name, perm, size, fName);
-					free(perm);
+					longTime_print(buffer);
+					printf(" (%d) %8d %s %s %s%6d %s\n", nlinks_print(buffer), inode_print(buffer), owner_print(buffer), group_print(buffer), perm_print(buffer), size_print(buffer), fName);
+					free(perm_print(buffer));
 				}else if (lonG && linK){
-					localtime_r(&mt, &tm);
 					toLink =(char *) malloc (sizeof(char));
 					readlink(fName, toLink, 1000);  
-					printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);
-					printf(" (%d) %8d %s %s %s%6d %s", nlinks, inodes, getpwuid(owner)->pw_name, getgrgid(group)->gr_name, perm, size, fName);
+					longTime_print(buffer);
+					printf(" (%d) %8d %s %s %s%6d %s", nlinks_print(buffer), inode_print(buffer), owner_print(buffer), group_print(buffer), perm_print(buffer), size_print(buffer), fName);
 					if(S_ISLNK(buffer.st_mode))
 						printf("->%s", toLink);
 					printf("\n");
-					free(perm);	
+					free(perm_print(buffer));	
 					free(toLink);
 				
 				}else if (acC){
-					localtime_r(&at, &tm);
-					printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);
-					printf(" (%d) %8d %s %s %s%6d %s\n", nlinks, inodes, getpwuid(owner)->pw_name, getgrgid(group)->gr_name, perm, size, fName);
-					free(perm);		
+					accTime_print(buffer);
+					printf(" (%d) %8d %s %s %s%6d %s\n", nlinks_print(buffer), inode_print(buffer), owner_print(buffer), group_print(buffer), perm_print(buffer), size_print(buffer), fName);
+					free(perm_print(buffer));		
 				}
 			}
 		}else{
@@ -408,7 +454,7 @@ void cmd_listfich(char *tr[])
 {	
 	char dir[MAXLINEA];
 	struct stat buffer;
-	int i, j, size;
+	int i, j;
 	bool linK = false, lonG = false, acC = false;	
 	
 	for(j = 0; tr[j] != NULL; j++){
@@ -423,10 +469,8 @@ void cmd_listfich(char *tr[])
 		for (i=0; tr[i] != NULL; i++){
 			if(lstat(tr[i], &buffer) == -1)
 				printf("It is not possible to access %s: %s\n", tr[i], strerror(errno));
-			else {
-				size = buffer.st_size;
-				printf("%d %s\n", size, tr[i]);
-			}
+			else 
+				printf("%d %s\n", size_print(buffer), tr[i]);
 		} 
 	}else if(lonG || acC){
 		for (i=1; tr[i] != NULL; i++){
