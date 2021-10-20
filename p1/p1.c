@@ -105,7 +105,7 @@ char * ConvierteModo (mode_t m, char *permisos)
 void printFILE(char *fName, bool linK, bool lonG, bool acC, bool hiD, bool dirSz, bool recA, bool recB, int conTROL){
 	
 	if(!(!hiD && fName[0] == '.')){
-	int size = 0, nlinks = 0, inodes = 0, mode = 0, owner = 0, group = 0;
+	int size, nlinks, inodes, mode, owner, group;
 	time_t at, mt;
 	struct tm tm;
 	char * perm, * toLink;
@@ -114,75 +114,71 @@ void printFILE(char *fName, bool linK, bool lonG, bool acC, bool hiD, bool dirSz
 	struct dirent *ent;
 	dirc = malloc(sizeof(DIR *));
 	ent = malloc(sizeof(struct dirent*));
-	perm = NULL;
-	toLink = NULL;
 	char dir[MAXLINEA];
 	getcwd(dir, MAXLINEA);
 	
 
-	if(conTROL == 1){
-		if(lstat(fName, &buffer) == -1)
-			printf("It is not possible to access %s: %s\n", fName, strerror(errno));
-		else if(dirSz){	
-			size = buffer.st_size;
-			printf("%d %s\n", size, fName);	
-		}else if (lonG || linK || acC){
-			nlinks = buffer.st_nlink;
-			inodes = buffer.st_ino; //preguntar orden y inodes(pdf distinto)
-			owner = buffer.st_uid;
-			group = buffer.st_gid;
-			mode = buffer.st_mode;
-			size = buffer.st_size;  //preguntar uso de ->					
-			mt = buffer.st_mtime;
-			at = buffer.st_atime;			
-			perm =(char *) malloc (12);
-			ConvierteModo(mode, perm);
-	
-			if(lonG && !linK){
-				localtime_r(&mt, &tm);
-				printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);
-				printf(" (%d) %8d %s %s %s%6d %s\n", nlinks, inodes, getpwuid(owner)->pw_name, getgrgid(group)->gr_name, perm, size, fName);
-				free(perm);
+		if(conTROL == 1){
+			if(lstat(fName, &buffer) == -1)
+				printf("It is not possible to access %s: %s\n", fName, strerror(errno));
+			else if(dirSz){	
+				size = buffer.st_size;
+				printf("%d %s\n", size, fName);
 				
-			}else if (lonG && linK){
-				localtime_r(&mt, &tm);
-				toLink =(char *) malloc (sizeof(char));
-				readlink(fName, toLink, 1000);  
-			
-				printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);
-				printf(" (%d) %8d %s %s %s%6d %s", nlinks, inodes, getpwuid(owner)->pw_name, getgrgid(group)->gr_name, perm, size, fName);
-				if(S_ISLNK(buffer.st_mode))
-					printf("->%s", toLink);
-				printf("\n");
-				free(perm);	
-				free(toLink);
+			}else if (lonG || linK || acC){
+				nlinks = buffer.st_nlink;
+				inodes = buffer.st_ino; //preguntar orden y inodes(pdf distinto)
+				owner = buffer.st_uid;
+				group = buffer.st_gid;
+				mode = buffer.st_mode;
+				size = buffer.st_size;  //preguntar uso de ->					
+				mt = buffer.st_mtime;
+				at = buffer.st_atime;			
+				perm =(char *) malloc (12);
+				ConvierteModo(mode, perm);
+				if(lonG && !linK){
+					localtime_r(&mt, &tm);
+					printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);
+					printf(" (%d) %8d %s %s %s%6d %s\n", nlinks, inodes, getpwuid(owner)->pw_name, getgrgid(group)->gr_name, perm, size, fName);
+					free(perm);
+				}else if (lonG && linK){
+					localtime_r(&mt, &tm);
+					toLink =(char *) malloc (sizeof(char));
+					readlink(fName, toLink, 1000);  
+					printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);
+					printf(" (%d) %8d %s %s %s%6d %s", nlinks, inodes, getpwuid(owner)->pw_name, getgrgid(group)->gr_name, perm, size, fName);
+					if(S_ISLNK(buffer.st_mode))
+						printf("->%s", toLink);
+					printf("\n");
+					free(perm);	
+					free(toLink);
 				
-			}else if (acC){
-				localtime_r(&at, &tm);
-				printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);
-				printf(" (%d) %8d %s %s %s%6d %s\n", nlinks, inodes, getpwuid(owner)->pw_name, getgrgid(group)->gr_name, perm, size, fName);
-				free(perm);								
+				}else if (acC){
+					localtime_r(&at, &tm);
+					printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);
+					printf(" (%d) %8d %s %s %s%6d %s\n", nlinks, inodes, getpwuid(owner)->pw_name, getgrgid(group)->gr_name, perm, size, fName);
+					free(perm);		
+				}
+			}
+		}else{
+			if(lstat(fName, &buffer) == -1)
+				printf("It is not possible to access %s: %s\n", fName, strerror(errno));			
+			else if(!S_ISREG(buffer.st_mode) && !S_ISLNK(buffer.st_mode)){
+				if(recA && fName[0] != '.'){
+					if ((dirc = opendir(fName)) != NULL){
+						printf("*** %s ***\n", fName);
+						chdir(fName);
+						while ((ent = readdir (dirc)) != NULL){
+							printFILE(ent->d_name, linK, lonG, acC, hiD, dirSz, recA, recB, 1);
+						}
+						closedir(dirc);						
+					}
+					chdir(dir);
+				}else if(recB){				
+				}
 			}
 		}
-	}else{			
-		if(!S_ISREG(buffer.st_mode) && !S_ISLNK(buffer.st_mode)){
-			if(recA && fName[0] != '.'){
-				if ((dirc = opendir(fName)) != NULL){
-					printf("*** %s ***\n", fName);
-					chdir(fName);
-					while ((ent = readdir (dirc)) != NULL){
-						printFILE(ent->d_name, linK, lonG, acC, hiD, dirSz, recA, recB, 1);
-					}
-					closedir(dirc);
-					free(ent);						
-				}			
-				chdir(dir);			
-			}else if(recB){				
-			}			
-		}
-		//free(ent);
-	}	
-	}	
+	}
 }
 
 void delete(char *fileName)
@@ -413,7 +409,7 @@ void cmd_listfich(char *tr[])
 	char dir[MAXLINEA];
 	struct stat buffer;
 	int i, j, size;
-	bool linK, lonG, acC;	
+	bool linK = false, lonG = false, acC = false;	
 	
 	for(j = 0; tr[j] != NULL; j++){
 		if(!strcmp(tr[j], "-link")) linK = true;
@@ -440,7 +436,6 @@ void cmd_listfich(char *tr[])
 		}
 	}	
 }	
-	
 void cmd_listdir(char *tr[])
 {
 	char dir[MAXLINEA];
@@ -474,62 +469,65 @@ void cmd_listdir(char *tr[])
 			countTRUE++;
 		}
 	}	
-	//hacer caso long acc juntos -> prioridad acc	
+	//hacer caso long acc juntos -> prioridad acc
     if (tr[countTRUE] == NULL) 
         printf("%s\n", dir);
     else if (!lonG && !acC){ 
 		for (i=0; tr[i] != NULL; i++){
 			if(i == 0 && (hiD||recA||recB||linK)){ 
-				if(tr[countTRUE] == NULL)
+				if(tr[countTRUE] == NULL) 
 					break;
 				else 
 					i = countTRUE;
-			}			
-			if(lstat(tr[i], &buffer) == -1){
-				if(strcmp(tr[i], "-reca"))
+			}
+			if(strcmp(tr[i], "-reca")){			
+			if(lstat(tr[i], &buffer) == -1)
 					printf("It is not possible to access %s: %s\n", tr[i], strerror(errno));
-			}else if (!S_ISREG(buffer.st_mode) && !S_ISLNK(buffer.st_mode)){
-				if ((dirc = opendir(tr[i])) == NULL){
-					if(strcmp(tr[i], "-reca"))
+			else if (!S_ISREG(buffer.st_mode) && !S_ISLNK(buffer.st_mode)){
+				if ((dirc = opendir(tr[i])) == NULL)
 						printf("It is not possible to access %s: %s\n", tr[i], strerror(errno));
-				}else{
-					printf("*** %s ***\n", tr[i]);
-					chdir(tr[i]);
-					while ((ent = readdir (dirc)) != NULL){
-						printFILE(ent->d_name, linK, lonG, acC, hiD, true, false, false, 1);
-					}				
-					closedir(dirc);						
-				}
-				chdir(dir);
+					else{
+						printf("*** %s ***\n", tr[i]);
+						chdir(tr[i]);
+						while ((ent = readdir (dirc)) != NULL){
+							printFILE(ent->d_name, linK, lonG, acC, hiD, true, false, false, 1);
+						}				
+						closedir(dirc);	
+					}
+					chdir(dir);
 			}else {
 				size = buffer.st_size;
 				printf("%d %s\n", size, tr[i]);
 			}
 		}
+		}
 		for (i=0; tr[i] != NULL; i++){
 			if(i == 0 && (hiD||recA||recB||linK)){ 
 				if(tr[countTRUE] == NULL)
 					break;
-				else 
+				else
 					i = countTRUE;
-			}			
+			}
+			if(strcmp(tr[i], "-reca")){
 			if (!S_ISREG(buffer.st_mode) && !S_ISLNK(buffer.st_mode)){
 				if ((dirc = opendir(tr[i])) != NULL){
 					if(conTROL !=0)
 						printf("*** %s ***\n", tr[i]);
 					chdir(tr[i]);
 					while ((ent = readdir (dirc)) != NULL){
-						printFILE(ent->d_name, linK, lonG, acC, hiD, true, recA, recB, 0);						
+						printFILE(ent->d_name, linK, lonG, acC, hiD, true, recA, recB, 0);
+							
 					}				
 					closedir(dirc);
 					conTROL = 1;
-				}				
+				}
 				chdir(dir);
 			}else {
 				size = buffer.st_size;
 				printf("%d %s\n", size, tr[i]);
 			}
-		}		
+		}	
+	}	
 	}else if(lonG || acC){		
 		for (i=1; tr[i] != NULL; i++){
 			if(i == 1 && (linK || hiD)){
@@ -543,27 +541,28 @@ void cmd_listdir(char *tr[])
 					break;
 				else
 					i = 3;
-			}			
-			if(lstat(tr[i], &buffer) == -1){
-				if(strcmp(tr[i], "-reca"))
+			}
+			if(strcmp(tr[i], "-reca")){
+			if(lstat(tr[i], &buffer) == -1)
 					printf("It is not possible to access %s: %s\n", tr[i], strerror(errno));
-			}else if (!S_ISREG(buffer.st_mode) && !S_ISLNK(buffer.st_mode)){
-				if ((dirc = opendir(tr[i])) == NULL){
-					if(strcmp(tr[i], "-reca"))
-						printf("It is not possible to access %s: %s\n", tr[i], strerror(errno));
-				}else{
-					printf("*** %s ***\n", tr[i]);
-					chdir(tr[i]);
-					while ((ent = readdir (dirc)) != NULL){
-						printFILE(ent->d_name, linK, lonG, acC, hiD, false, false, false, 1);
-					}					
-					closedir(dirc);				
-				}
-				chdir(dir);
-			}else{
-				printFILE(tr[i], linK, lonG, acC, hiD , false, false, false, 1);
+			else if (!S_ISREG(buffer.st_mode) && !S_ISLNK(buffer.st_mode)){
+				if ((dirc = opendir(tr[i])) == NULL)
+							printf("It is not possible to access %s: %s\n", tr[i], strerror(errno));
+				else{
+						printf("*** %s ***\n", tr[i]);
+						chdir(tr[i]);
+						while ((ent = readdir (dirc)) != NULL){
+							printFILE(ent->d_name, linK, lonG, acC, hiD, false, false, false, 1);
+						}					
+						closedir(dirc);
+				
+					}
+					chdir(dir);				
+				} else {
+					printFILE(tr[i], linK, lonG, acC, hiD , false, false, false, 1);
 			}
 		}	
+	}
 		for (i=1; tr[i] != NULL; i++){
 			if(i == 1 && (linK || hiD)){
 				if(tr[2] == NULL)
@@ -576,22 +575,24 @@ void cmd_listdir(char *tr[])
 					break;
 				else
 					i = 3;
-			}			
+			}
+			if(strcmp(tr[i], "-reca")){
 			if (!S_ISREG(buffer.st_mode) && !S_ISLNK(buffer.st_mode)){
 				if ((dirc = opendir(tr[i])) != NULL){
-					//if(conTROL !=0)
-						printf("*** %s ***\n", tr[i]);
-					chdir(tr[i]);
-					while ((ent = readdir (dirc)) != NULL){
-						printFILE(ent->d_name, linK, lonG, acC, hiD, false, recA, recB, 0);
-					}					
-					closedir(dirc);
-					conTROL = 1;
+						if(conTROL !=0)
+							printf("*** %s ***\n", tr[i]);
+						chdir(tr[i]);
+						while ((ent = readdir (dirc)) != NULL){
+							printFILE(ent->d_name, linK, lonG, acC, hiD, false, recA, recB, 0);
+						}					
+						closedir(dirc);
+						conTROL = 1;
 				}
 				chdir(dir);				
-			}else
+			} else
 				 printFILE(tr[i], linK, lonG, acC, hiD , false, recA, recB, 0);
-		}	
+		}
+	}	
 	}
 	free(ent);
 }
