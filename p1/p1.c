@@ -322,7 +322,7 @@ void cmd_autores (char *tr[])
     if (tr[0]!=NULL && !strcmp(tr[0], "-n"))
         printf("David Garcia Ramallal\nAlfredo Javier Freire Bouzas\n");
     else if (tr[0]!=NULL && !strcmp(tr[0], "-l"))
-        printf("david.ramallal@udc.es\njavier.freire.bouzas@udc.es (\njavier.freire.bouzas@udc.es)\n");
+        printf("david.ramallal@udc.es\njavier.freire.bouzas@udc.es\n");
     else
         printf("David Garcia Ramallal - david.ramallal@udc.es\nAlfredo Javier Freire Bouzas - javier.freire.bouzas@udc.es\n");
 }
@@ -393,7 +393,7 @@ void cmd_ayuda (char *tr[])
         else if (tr[0]!=NULL && !strcmp(tr[0], "bye"))
             printf("bye\nEnds the shell\n");
         else if (tr[0]!=NULL && !strcmp(tr[0], "crear"))
-            printf("crear [-f ] name\nCreates a file or directory in the file system\n name is the name of the file (or directory) to be created.\ncreate -f name creates an empty file\ncreate name creates a new directory\nIf name is not given, the name of the current working directory will be printed\n");
+            printf("crear [-f ] name\nCreates a file or directory in the file system\nname is the name of the file (or directory) to be created.\ncreate -f name creates an empty file\ncreate name creates a new directory\nIf name is not given, the name of the current working directory will be printed\n");
         else if (tr[0]!=NULL && !strcmp(tr[0], "borrar"))
             printf("borrar name1 name2 ...\nDeletes files and/or empty directories\nIf no name is given, the name current working directory will be printed\n");
         else if (tr[0]!=NULL && !strcmp(tr[0], "borrarrec"))
@@ -401,7 +401,7 @@ void cmd_ayuda (char *tr[])
         else if (tr[0]!=NULL && !strcmp(tr[0], "listfich"))
             printf("listfich [-long] [-link] [-acc] name1 name2 name3 ...\nGives info on files (or directories, or devices ... ) name1, name2 ... in ONE LINE per file\nIf no options are given, it prints the size and the name of each file.\nIf no name is given, the name current working directory will be printed\nlistfich -long stands for long listing\nlistfich -link is only meaningful for long listings: if the file is a symbolic link the name of the file it points to is also printed\nlistfich -acc last access time will be used instead of last modification time\n");
         else if (tr[0]!=NULL && !strcmp(tr[0], "listdir"))
-            printf("listdir [-reca] [-recb] [-hid] [-long] [-link] [-acc] name1 name2 ...\nLists the contents of directories with names name1, name2 ...\nIf any of name1, name2 ... is not a directory, info on it will be printed as with command listfich\nIf no name is given, the name current working directory will be printed\nlistdir -long stands for long listing\nlistdir -link is only meaningful for long listings: if the directory is a symbolic link, the name of the directory it points to is also printed\nlistdir -acc last access time will be used instead of last modification time\nlistdir -hid hidden files and/or directories will also get listed\nlistdir -reca when listing a directory's contents, subdirectories will be listed recursively after all the files in the directory. (if the -hid option is also given, hidden subdirectories will also get listed)\nlistdir -recb when listing a directory's contents, subdirectories will be listed recursively before all the files in the directory. (if the -hid option is also given, hidden subdirectories will also get listed)\n");
+            printf("listdir [-reca] [-recb] [-hid] [-long] [-link] [-acc] name1 name2 ...\nLists the contents of directories with names name1, name2 ...\nIf any of name1, name2 ... is not a directory, info on it will be printed as with command listfich\nIf no name is given, the name current working directory will be printed\nlistdir -long stands for long listing\nlistdir -link is only meaningful for long listings: if the directory is a symbolic link, the name of the directory it points to is also printed\nlistdir -acc last access time will be used instead of last modification time\nlistdir -hid hidden files and/or directories will also get listed\nlistdir -reca when listing a directory's contents, subdirectories will be listed recursively after all the files in the directory.\n(if the -hid option is also given, hidden subdirectories will also get listed)\nlistdir -recb when listing a directory's contents, subdirectories will be listed recursively before all the files in the directory.\n(if the -hid option is also given, hidden subdirectories will also get listed)\n");
     }
 }
 
@@ -455,7 +455,7 @@ void cmd_crear(char *tr[])
     if ((tr[0] == NULL) || (!strcmp(tr[0], "-f") && (tr[1] == NULL))) 
         printf("%s\n", getcwd(dir, MAXLINEA));
     else if (!strcmp(tr[0], "-f"))
-		open(tr[1], O_CREAT);
+		open(tr[1], O_CREAT, S_IRWXU);
     else
 		mkdir(tr[0], 0777);
 }
@@ -501,28 +501,33 @@ void cmd_borrarrec(char *tr[])
 void cmd_listfich(char *tr[]){	
 	char dir[MAXLINEA];
 	struct stat buffer;
-	int i, j;
+	int i, j, countTRUE = 0;
 	bool linK = false, lonG = false, acC = false;	
 	
 	for(j = 0; tr[j] != NULL; j++){
-		if(!strcmp(tr[j], "-link")) linK = true;
-		if(!strcmp(tr[j], "-long")) lonG = true;
-		if(!strcmp(tr[j], "-acc")) acC = true;		
+		if(!strcmp(tr[j], "-link")){
+			linK = true;
+		 countTRUE ++;
+		}if(!strcmp(tr[j], "-long")){
+			lonG = true;
+			 countTRUE++;
+		}if(!strcmp(tr[j], "-acc")){
+			acC = true;	
+			 countTRUE++;
+		 }	
 	}   
 	 
     if ((tr[0] == NULL) || ((lonG || acC) && (tr[1] == NULL))) 
         printf("%s\n", getcwd(dir, MAXLINEA));
     else if (!lonG && !acC){ 
-		for (i=0; tr[i] != NULL; i++){
+		for (i=countTRUE; tr[i] != NULL; i++){
 			if(lstat(tr[i], &buffer) == -1)
 				printf("It is not possible to access %s: %s\n", tr[i], strerror(errno));
 			else 
 				printFILE(tr[i], linK, lonG, acC, false);
 		} 
 	}else if(lonG || acC){
-		for (i=1; tr[i] != NULL; i++){
-			if(i == 1 && linK) 
-				i = 2;
+		for (i=countTRUE; tr[i] != NULL; i++){
 			printFILE(tr[i], linK, lonG, acC, false);
 		}
 	}	
