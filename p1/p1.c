@@ -165,7 +165,7 @@ void accTime_print(struct stat buffer)
 	printf("%04d/%02d/%02d-%02d:%02d ", (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);	
 }
 
-void printFILE(char *fName, bool linK, bool lonG, bool acC, bool hiD, bool printSize){
+void printFILE(char *fName, bool linK, bool lonG, bool acC, bool hiD){
 	if(!(!hiD && fName[0] == '.')){
 		char * toLink;
 		struct stat buffer;
@@ -173,7 +173,7 @@ void printFILE(char *fName, bool linK, bool lonG, bool acC, bool hiD, bool print
 		if(lstat(fName, &buffer) == -1)
 			printf("It is not possible to access %s: %s\n", fName, strerror(errno));
 		else{
-			if(printSize){
+			if(!lonG && !acC){
 				printf("%d %s\n", size_print(buffer), fName);
 			}else{
 			
@@ -199,6 +199,7 @@ void printLISTDIR(char *fName, bool lonG, bool linK, bool acC, bool hiD){
 	char dir[MAXLINEA];
 	getcwd(dir, MAXLINEA);
 	struct stat buffer;
+	struct stat buffer2;
 	DIR * dirc;
 	struct dirent *ent;
 	dirc = malloc(sizeof(DIR *));
@@ -210,16 +211,17 @@ void printLISTDIR(char *fName, bool lonG, bool linK, bool acC, bool hiD){
 		if ((dirc = opendir(fName)) == NULL)
 			printf("It is not possible to access %s: %s\n", fName, strerror(errno));
 		else{
-			printf("*** %s ***\n", fName);
+			printf("************%s\n", fName);
 			chdir(fName);
 			while ((ent = readdir (dirc)) != NULL){
 				if (!lonG && !acC){
+					lstat(ent->d_name, &buffer2);
 					if(hiD)
-						printf("%d %s\n", size_print(buffer), ent->d_name);
+						printf("%d %s\n", size_print(buffer2), ent->d_name);
 					else if(ent->d_name[0] != '.')
-						printf("%d %s\n", size_print(buffer), ent->d_name);
+						printf("%d %s\n", size_print(buffer2), ent->d_name);
 				}else if(lonG || acC)
-					printFILE(ent->d_name, linK, lonG, acC, hiD, false);
+					printFILE(ent->d_name, linK, lonG, acC, hiD);
 			}
 			closedir(dirc);
 		}
@@ -264,8 +266,8 @@ void printREC(char *fName, bool lonG, bool linK, bool acC, bool hiD, bool recA, 
 					}
 					chdir(dir);
 		}
-		else
-			printFILE(fName, lonG, linK, acC, hiD, false);
+		/*else
+			printFILE(fName, lonG, linK, acC, hiD);*/
 	}
 }
 	
@@ -515,13 +517,13 @@ void cmd_listfich(char *tr[]){
 			if(lstat(tr[i], &buffer) == -1)
 				printf("It is not possible to access %s: %s\n", tr[i], strerror(errno));
 			else 
-				printFILE(tr[i], linK, lonG, acC, false, true);
+				printFILE(tr[i], linK, lonG, acC, false);
 		} 
 	}else if(lonG || acC){
 		for (i=1; tr[i] != NULL; i++){
 			if(i == 1 && linK) 
 				i = 2;
-			printFILE(tr[i], linK, lonG, acC, false, false);
+			printFILE(tr[i], linK, lonG, acC, false);
 		}
 	}	
 }	
@@ -529,6 +531,7 @@ void cmd_listfich(char *tr[]){
 void cmd_listdir(char *tr[]){
 	char dir[MAXLINEA];
 	getcwd(dir, MAXLINEA);
+	struct stat buffer;
 	int i = 0, j = 0, countTRUE = 0;
 	bool lonG = false, acC = false, hiD = false, linK = false, recA = false, recB = false;
 	
@@ -556,13 +559,21 @@ void cmd_listdir(char *tr[]){
 	
 	if(recB){
 		for (i=countTRUE; tr[i] != NULL; i++){
-			printREC(tr[i], lonG, linK, acC, hiD, recA, recB);
-			printLISTDIR(tr[i], lonG, linK, acC, hiD);
+			lstat(tr[i], &buffer);
+			if(S_ISDIR(buffer.st_mode)){
+				printREC(tr[i], lonG, linK, acC, hiD, recA, recB);
+				printLISTDIR(tr[i], lonG, linK, acC, hiD);
+			}else
+				printFILE(tr[i], linK, lonG, acC, hiD);
 		}
 	}else if(recA){
 		for (i=countTRUE; tr[i] != NULL; i++){
-			printLISTDIR(tr[i], lonG, linK, acC, hiD);
-			printREC(tr[i], lonG, linK, acC, hiD, recA, recB);
+			lstat(tr[i], &buffer);
+			if(S_ISDIR(buffer.st_mode)){
+				printLISTDIR(tr[i], lonG, linK, acC, hiD);
+				printREC(tr[i], lonG, linK, acC, hiD, recA, recB);
+			}else
+				printFILE(tr[i], linK, lonG, acC, hiD);
 		}
 	}else if (tr[countTRUE] == NULL)
         printf("%s\n", dir);
