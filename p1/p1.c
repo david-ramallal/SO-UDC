@@ -137,16 +137,6 @@ int nlinks_print(struct stat buffer)
 	return buffer.st_nlink;	
 }	
 
-char * perm_print(struct stat buffer)
-{
-	int mode;
-	char * perm;
-	mode = buffer.st_mode;
-	perm =(char *) malloc (12);
-	ConvierteModo(mode, perm);
-	return perm;
-}
-
 void longTime_print(struct stat buffer)
 {
 	time_t mt;
@@ -167,34 +157,39 @@ void accTime_print(struct stat buffer)
 
 void printFILE(char *fName, bool linK, bool lonG, bool acC, bool hiD){
 	if(!(!hiD && fName[0] == '.')){
-		char * toLink;
+		char * toLink, * perm;
 		struct stat buffer;
+		int mode;
 	
 		if(lstat(fName, &buffer) == -1)
 			printf("It is not possible to access %s: %s\n", fName, strerror(errno));
 		else{
-			if(!lonG && !acC){
+			if(!lonG && !acC)
 				printf("%d %s\n", size_print(buffer), fName);
-			}else{
-			
-			if(acC)
-				accTime_print(buffer);
-			else
-				longTime_print(buffer);
-			printf(" (%d) %8d %s %s %s%6d %s", nlinks_print(buffer), inode_print(buffer), owner_print(buffer), group_print(buffer), perm_print(buffer), size_print(buffer), fName);
-			if(linK){
-				toLink =(char *) malloc (sizeof(char));
-				readlink(fName, toLink, 1000);
-				if(S_ISLNK(buffer.st_mode))
-					printf("->%s\n", toLink);
-				else printf("\n");
-				free(toLink);
-			}else
-				printf("\n");
+			else{			
+				if(acC)
+					accTime_print(buffer);
+				else
+					longTime_print(buffer);
+				perm =(char *) malloc (12);
+				mode = buffer.st_mode;
+				ConvierteModo(mode, perm);
+				printf(" %2d (%8d) %8s %8s %14s %6d %s", nlinks_print(buffer), inode_print(buffer), owner_print(buffer), group_print(buffer), perm, size_print(buffer), fName);
+				free(perm);
+				if(linK){
+					toLink =(char *) malloc (sizeof(char));
+					readlink(fName, toLink, 1000);
+					if(S_ISLNK(buffer.st_mode))
+						printf("->%s\n", toLink);
+					else printf("\n");
+					free(toLink);
+				}else
+					printf("\n");
 			}
 		}
 	}
 }
+
 void printLISTDIR(char *fName, bool lonG, bool linK, bool acC, bool hiD){
 	char dir[MAXLINEA];
 	getcwd(dir, MAXLINEA);
@@ -202,8 +197,6 @@ void printLISTDIR(char *fName, bool lonG, bool linK, bool acC, bool hiD){
 	struct stat buffer2;
 	DIR * dirc;
 	struct dirent *ent;
-	dirc = malloc(sizeof(DIR *));
-	ent = malloc(sizeof(struct dirent*));
 	
 	if(lstat(fName, &buffer) == -1)
 		printf("It is not possible to access %s: %s\n", fName, strerror(errno));
@@ -226,8 +219,7 @@ void printLISTDIR(char *fName, bool lonG, bool linK, bool acC, bool hiD){
 			closedir(dirc);
 		}
 		chdir(dir);
-	}
-	
+	}	
 }
 
 void printREC(char *fName, bool lonG, bool linK, bool acC, bool hiD, bool recA, bool recB){
@@ -240,40 +232,31 @@ void printREC(char *fName, bool lonG, bool linK, bool acC, bool hiD, bool recA, 
 	struct stat buffer;
 	DIR * dirc;
 	struct dirent *ent;
-	dirc = malloc(sizeof(DIR *));
-	ent = malloc(sizeof(struct dirent*));
 	
 	if(lstat(fName, &buffer) == -1)
 		printf("It is not possible to access %s: %s\n", fName, strerror(errno));
 	else{
 		if(S_ISDIR(buffer.st_mode)){
-				if ((dirc = opendir(fName)) != NULL){
-						chdir(fName);
-						while ((ent = readdir (dirc)) != NULL){
-							if(strcmp(ent->d_name, ".") && strcmp(ent->d_name, "..")){
-								if(recA){
-								printLISTDIR(ent->d_name, lonG, linK, acC, hiD);
-								printREC(ent->d_name, lonG, linK, acC, hiD, recA, recB);
-								}
-								else{
-								printREC(ent->d_name, lonG, linK, acC, hiD, recA, recB);
-								printLISTDIR(ent->d_name, lonG, linK, acC, hiD);
-							}
-							}
+			if ((dirc = opendir(fName)) != NULL){
+				chdir(fName);
+				while ((ent = readdir (dirc)) != NULL){
+					if(strcmp(ent->d_name, ".") && strcmp(ent->d_name, "..")){
+						if(recA){
+							printLISTDIR(ent->d_name, lonG, linK, acC, hiD);
+							printREC(ent->d_name, lonG, linK, acC, hiD, recA, recB);
 						}
-						closedir(dirc);
-										
+						else{
+							printREC(ent->d_name, lonG, linK, acC, hiD, recA, recB);
+							printLISTDIR(ent->d_name, lonG, linK, acC, hiD);
+						}
 					}
-					chdir(dir);
+				}
+				closedir(dirc);				
+			}
+			chdir(dir);
 		}
-		/*else
-			printFILE(fName, lonG, linK, acC, hiD);*/
 	}
 }
-	
-	
-	
-
 
 void delete(char *fileName)
 {
@@ -288,9 +271,7 @@ void deleteRec(char *fileName)
     getcwd(dir, MAXLINEA);
     struct stat buffer; 
     DIR * dirc;
-    struct dirent *ent;
-    dirc = malloc(sizeof(DIR *));
-    ent = malloc(sizeof(struct dirent*));   
+    struct dirent *ent;  
    
     if(lstat(fileName, &buffer) == -1)
 		printf("It is not possible to delete %s: %s\n", fileName, strerror(errno));
@@ -515,8 +496,7 @@ void cmd_listfich(char *tr[]){
 			acC = true;	
 			 countTRUE++;
 		 }	
-	}   
-	 
+	}	 
     if ((tr[0] == NULL) || ((lonG || acC) && (tr[1] == NULL))) 
         printf("%s\n", getcwd(dir, MAXLINEA));
     else if (!lonG && !acC){ 
@@ -560,8 +540,7 @@ void cmd_listdir(char *tr[]){
 			recB = true;
 			countTRUE++;
 		}
-	}
-	
+	}	
 	if(recB){
 		for (i=countTRUE; tr[i] != NULL; i++){
 			lstat(tr[i], &buffer);
