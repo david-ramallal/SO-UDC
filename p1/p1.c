@@ -157,7 +157,7 @@ void accTime_print(struct stat buffer)
 
 void printFILE(char *fName, bool linK, bool lonG, bool acC, bool hiD){
 	if(!(!hiD && fName[0] == '.')){
-		char * toLink, * perm;
+		char toLink[MAXLINEA] = "", * perm;
 		struct stat buffer;
 		int mode;
 	
@@ -177,12 +177,10 @@ void printFILE(char *fName, bool linK, bool lonG, bool acC, bool hiD){
 				printf(" %2d (%8d) %8s %8s %14s %6d %s", nlinks_print(buffer), inode_print(buffer), owner_print(buffer), group_print(buffer), perm, size_print(buffer), fName);
 				free(perm);
 				if(linK){
-					toLink = malloc (sizeof(char *));
-					readlink(fName, toLink, sizeof(char *));
+					readlink(fName, toLink, MAXLINEA);
 					if(S_ISLNK(buffer.st_mode))
 						printf("->%s\n", toLink);
 					else printf("\n");
-					free(toLink);
 				}else
 					printf("\n");
 			}
@@ -440,8 +438,8 @@ void cmd_crear(char *tr[])
 		if(open(tr[1], O_CREAT, S_IRWXU) == -1)
 			printf("It is not possible to create %s: %s\n", tr[1], strerror(errno));
     }else{
-		if(mkdir(tr[0], 0777) == -1);
-		printf("It is not possible to create %s: %s\n", tr[0], strerror(errno));
+		if(mkdir(tr[0], 0777) == -1)
+			printf("It is not possible to create %s: %s\n", tr[0], strerror(errno));
 	}
 }
 
