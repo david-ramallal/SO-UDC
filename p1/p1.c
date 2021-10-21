@@ -177,8 +177,8 @@ void printFILE(char *fName, bool linK, bool lonG, bool acC, bool hiD){
 				printf(" %2d (%8d) %8s %8s %14s %6d %s", nlinks_print(buffer), inode_print(buffer), owner_print(buffer), group_print(buffer), perm, size_print(buffer), fName);
 				free(perm);
 				if(linK){
-					toLink =(char *) malloc (sizeof(char));
-					readlink(fName, toLink, 1000);
+					toLink = malloc (sizeof(char *));
+					readlink(fName, toLink, sizeof(char *));
 					if(S_ISLNK(buffer.st_mode))
 						printf("->%s\n", toLink);
 					else printf("\n");
@@ -241,13 +241,14 @@ void printREC(char *fName, bool lonG, bool linK, bool acC, bool hiD, bool recA, 
 				chdir(fName);
 				while ((ent = readdir (dirc)) != NULL){
 					if(strcmp(ent->d_name, ".") && strcmp(ent->d_name, "..")){
-						if(recA){
-							printLISTDIR(ent->d_name, lonG, linK, acC, hiD);
+						if(recB){
 							printREC(ent->d_name, lonG, linK, acC, hiD, recA, recB);
+							printLISTDIR(ent->d_name, lonG, linK, acC, hiD);
 						}
 						else{
-							printREC(ent->d_name, lonG, linK, acC, hiD, recA, recB);
 							printLISTDIR(ent->d_name, lonG, linK, acC, hiD);
+							printREC(ent->d_name, lonG, linK, acC, hiD, recA, recB);
+							
 						}
 					}
 				}
@@ -262,7 +263,7 @@ void delete(char *fileName)
 {
       if(rmdir(fileName) == -1)
 		if(unlink(fileName) == -1)
-			perror("Cannot remove");
+			printf("It is not possible to delete %s: %s\n", fileName, strerror(errno));
 }
 
 void deleteRec(char *fileName)
@@ -435,10 +436,13 @@ void cmd_crear(char *tr[])
     
     if ((tr[0] == NULL) || (!strcmp(tr[0], "-f") && (tr[1] == NULL))) 
         printf("%s\n", getcwd(dir, MAXLINEA));
-    else if (!strcmp(tr[0], "-f"))
-		open(tr[1], O_CREAT, S_IRWXU);
-    else
-		mkdir(tr[0], 0777);
+    else if (!strcmp(tr[0], "-f")){
+		if(open(tr[1], O_CREAT, S_IRWXU) == -1)
+			printf("It is not possible to create %s: %s\n", tr[1], strerror(errno));
+    }else{
+		if(mkdir(tr[0], 0777) == -1);
+		printf("It is not possible to create %s: %s\n", tr[0], strerror(errno));
+	}
 }
 
 void cmd_borrar(char *tr[])
@@ -563,7 +567,11 @@ void cmd_listdir(char *tr[]){
         printf("%s\n", dir);
     else{ 
 		for (i=countTRUE; tr[i] != NULL; i++){
-			printLISTDIR(tr[i], lonG, linK, acC, hiD);
+			lstat(tr[i], &buffer);
+			if(S_ISDIR(buffer.st_mode))
+				printLISTDIR(tr[i], lonG, linK, acC, hiD);
+			else
+				printFILE(tr[i], linK, lonG, acC, hiD);
 		}
 	}
 }
