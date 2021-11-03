@@ -44,6 +44,15 @@ void cmd_borrar(char *tr[]);
 void cmd_borrarrec(char *tr[]);
 void cmd_listfich(char *tr[]);
 void cmd_listdir(char *tr[]);
+void cmd_malloc(char *tr[]);
+void cmd_mmap(char *tr[]);
+void cmd_shared(char *tr[]);
+void cmd_dealloc(char *tr[]);
+void cmd_memoria(char *tr[]);
+void cmd_volcarmem(char *tr[]);
+void cmd_llenarmem(char *tr[]);
+void cmd_recursiva(char *tr[]);
+void cmd_es(char *tr[]);
 int trocearCadena ( char *cadena, char *trozos[]);
 void procesarEntrada (char *tr[]);
 
@@ -64,7 +73,15 @@ struct CMD C[]={
         {"borrarrec", cmd_borrarrec},
         {"listfich",cmd_listfich},
         {"listdir", cmd_listdir},
-
+        {"malloc", cmd_malloc},
+        {"mmap", cmd_mmap},
+        {"shared", cmd_shared},
+        {"dealloc", cmd_dealloc},
+        {"memoria", cmd_memoria},
+        {"volcarmem", cmd_volcarmem},
+        {"llenarmem", cmd_llenarmem},
+        {"recursiva", cmd_recursiva},
+        {"e-s", cmd_es},
         {NULL,NULL}
 };
 
@@ -348,7 +365,7 @@ void cmd_infosis (char *tr[])
 void cmd_ayuda (char *tr[])
 {
     if (tr[0]==NULL)
-        printf("autores [-l|-n]\npid [-p]\ncarpeta [direct]\nfecha [-d|-h]\nhist [-c|-N]\ncomando N\ninfosis\nayuda [cmd]\nfin\nsalir\nbye\ncrear [-f ] name\nborrar name1 name2 ...\nborrarrec name1 name2 ...\nlistfich [-long] [-link] [-acc] name1 name2 name3 ...\nlistdir [-reca] [-recb] [-hid] [-long] [-link] [-acc] name1 name2 ...\n");
+        printf("autores [-l|-n]\npid [-p]\ncarpeta [direct]\nfecha [-d|-h]\nhist [-c|-N]\ncomando N\ninfosis\nayuda [cmd]\nfin\nsalir\nbye\ncrear [-f ] name\nborrar name1 name2 ...\nborrarrec name1 name2 ...\nlistfich [-long] [-link] [-acc] name1 name2 name3 ...\nlistdir [-reca] [-recb] [-hid] [-long] [-link] [-acc] name1 name2 ...\nmalloc [-free] [tam]\nmmap [-free] fich [perm]\nshared [-free|-create|-delkey] cl [tam]\ndealloc [-malloc|-shared|-mmap] ...\nmemoria [-blocks] [-vars] [-funcs] [-all] [-pmap]\nvolcarmem addr [cont]\nllenarmem addr [cont] [byte]\nrecursiva n\ne-s read fich addr cont\ne-s write [-o] fich addr cont\n");
     else{
         if (tr[0]!=NULL && !strcmp(tr[0], "autores"))
             printf("autores [-l|-n]\nPrints names and logins of authors\nauthors -l prints only logins\nauthors -n prints only names\n");
@@ -382,6 +399,24 @@ void cmd_ayuda (char *tr[])
             printf("listfich [-long] [-link] [-acc] name1 name2 name3 ...\nGives info on files (or directories, or devices ... ) name1, name2 ... in ONE LINE per file\nIf no options are given, it prints the size and the name of each file.\nIf no name is given, the name current working directory will be printed\nlistfich -long stands for long listing\nlistfich -link is only meaningful for long listings: if the file is a symbolic link the name of the file it points to is also printed\nlistfich -acc last access time will be used instead of last modification time\n");
         else if (tr[0]!=NULL && !strcmp(tr[0], "listdir"))
             printf("listdir [-reca] [-recb] [-hid] [-long] [-link] [-acc] name1 name2 ...\nLists the contents of directories with names name1, name2 ...\nIf any of name1, name2 ... is not a directory, info on it will be printed as with command listfich\nIf no name is given, the name current working directory will be printed\nlistdir -long stands for long listing\nlistdir -link is only meaningful for long listings: if the directory is a symbolic link, the name of the directory it points to is also printed\nlistdir -acc last access time will be used instead of last modification time\nlistdir -hid hidden files and/or directories will also get listed\nlistdir -reca when listing a directory's contents, subdirectories will be listed recursively after all the files in the directory.\n(if the -hid option is also given, hidden subdirectories will also get listed)\nlistdir -recb when listing a directory's contents, subdirectories will be listed recursively before all the files in the directory.\n(if the -hid option is also given, hidden subdirectories will also get listed)\n");
+		else if (tr[0]!=NULL && !strcmp(tr[0], "malloc"))
+			printf("malloc [-free] [tam]\nThe shell allocates tam bytes using malloc and shows the memory address returned by malloc\nIf used as malloc -free [tam] The shell deallocates one of the blocks of size tam that has been allocated with the command malloc.\nIf no such block exists or if tam is not specified, the command will show the list of addresses allocated with the malloc command\n");
+		else if (tr[0]!=NULL && !strcmp(tr[0], "mmap"))
+			printf("mmap [-free] fich [perm]\nMaps in memory the file fich (all of its length starting at offset 0) and shows the memory address where the file has been mapped\nIf fich is not specified, the command will show the list of addresses allocated with the mmap command\nmmap -free fich Unmaps and closes the file fich and removes the address where it was mapped from the list\n If fich has been mapped several times, only one of the mappings will be undone\n If the file fich is not mapped by the process or if fich is not specified,\n the command will show the list of addresses (and size, and time . . . ) allocated with the mmap command\n");
+		else if (tr[0]!=NULL && !strcmp(tr[0], "shared"))
+			printf("shared [-free|-create|-delkey ] cl [tam]\nGets shared memory of key cl, maps it in the proccess address space and shows\nthe memory address where the shared memory has been mapped\nIf -create is not given, it is assumed that key cl is in use in the system\nso a new block of shared memory is not created\nIf no cl is specified, the command will show the list of addresses (and size, and time . . . )\nallocated with the shared command\nshared -create cl tam Creates a shared memory block of key cl, and size tam, maps\n it in the proccess address space and shows the memory address where the shared memory has been mapped\nshared -free cl Detaches the shared memory block with key cl from the process’ address\n space ad eliminates its address from the list. If shared memory block with key cl\n has been attached several times, ONLY one of them is detached\nIf cl is not specified, the command will show the list of addresses\n (and size, and time . . . ) allocated with the shared command\nshared -delkey cl Removes the shared memory region of key\n");
+		else if (tr[0]!=NULL && !strcmp(tr[0], "dealloc"))
+			printf("dealloc [-malloc|-shared|-mmap] ...\ndeallocates one of the memory blocks allocated with the command malloc, mmap or shared and removes it\nfrom the list. If no arguments are given, it prints a list of the allocated memory blocks\ndealloc -malloc size Does exactly the same as malloc -free size\ndealloc -shared cl Does exactly the same as shared -free cl\ndealloc -mmap file Does exactly the same as mmap -free file\nThis does the same (albeit with a different parameter) as malloc -free,\nshared -free or mmap -free deppending on addr\n");
+		else if (tr[0]!=NULL && !strcmp(tr[0], "memoria"))
+			printf("memoria [-blocks] [-vars] [-funcs] [-all] [-pmap]\nShows addresses inside the process memory space. If no arguments are given, is equivalent to -all\nmemoria -blocks shows the list of addresses (and size, and time . . . ) allocated with the malloc, shared and mmap\nmemoria -vars Prints the memory addresses of nine variables of the shel:\nthree extern (global) initializad variables, three static initialized and three automatic (local) initialized variables\nmemoria -funcs Prints the memory addresses of three program functions of the shell and three C library functions\nused in the shell program\nmemoria -all does the equivalent to -blocks, -vars and -funcs together\nmemoria -pmap Calls the program pmap for the shell process\n");
+		else if (tr[0]!=NULL && !strcmp(tr[0], "volcarmem"))
+			printf("volcarmem addr [cont]\nShows the contents of cont bytes starting at memory address addr\nIf cont is not specified, it shows 25 bytes\n\n");
+		else if (tr[0]!=NULL && !strcmp(tr[0], "llenarmem"))
+			printf("llenarmem addr [cont] [byte]\nFills cont bytes of memory starting at address addr with the value ’byte’\nIf ’byte’ is not specified, the value of 65 is assumed\nIf cont is not specified, the value of 128 is assume\n");
+		else if (tr[0]!=NULL && !strcmp(tr[0], "recursiva"))
+			printf("recursiva n\nCalls a recursive function passing the integer n as its parameter\n");
+		else if (tr[0]!=NULL && !strcmp(tr[0], "e-s"))
+			printf("e-s\ne-s read fich addr cont Reads cont bytes from file fich into memory address addr. If\ncont is not specified ALL of fich is read onto memory address addr\nWrites (using ONE write system call ) cont bytes from memory address addr into\nfile fich. If file fich does not exist it gets created; if it already exists it is\nnot overwritten unless “-o” (overwrite) is specified\n");
     }
 }
 
@@ -572,6 +607,42 @@ void cmd_listdir(char *tr[]){
 				printFILE(tr[i], linK, lonG, acC, hiD);
 		}
 	}
+}
+
+void cmd_malloc(char *tr[]){
+	
+}
+
+void cmd_mmap(char *tr[]){
+	
+}
+
+void cmd_shared(char *tr[]){
+	
+}
+
+void cmd_dealloc(char *tr[]){
+	
+}
+
+void cmd_memoria(char *tr[]){
+	
+}
+
+void cmd_volcarmem(char *tr[]){
+	
+}
+
+void cmd_llenarmem(char *tr[]){
+	
+}
+
+void cmd_recursiva(char *tr[]){
+	
+}
+
+void cmd_es(char *tr[]){
+	
 }
 
 int trocearCadena (char *cadena, char *trozos[])
