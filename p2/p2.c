@@ -19,6 +19,7 @@
 #include <pwd.h>
 #include <grp.h>
 #include "CmdList.h"
+#include "MemList.h"
 #include <errno.h>
 
 #define MAXLINEA 1024
@@ -610,6 +611,28 @@ void cmd_listdir(char *tr[]){
 }
 
 void cmd_malloc(char *tr[]){
+	size_t size;
+	char *address;
+	memItem item;
+	time_t t;
+    struct tm * timeinfo;
+    time(&t);
+    timeinfo = localtime(&t);
+	
+	if((tr[0] == NULL) || (!strcmp(tr[0], "-free") && tr[1] == NULL )){
+		//mostrar lista con mallocs
+	}else{
+		if(!strcmp(tr[0], "-free"))
+			size = atoi(tr[1]);
+		else
+			size = atoi(tr[0]);
+		address = malloc(size);
+		strcpy(item.address, address);
+		item.memSize = size;
+		item.memTime = timeinfo;
+		
+		
+	}
 	
 }
 
@@ -676,6 +699,10 @@ int main()
     char *tr[MAXLINEA/2];
     char aux[MAXLINEA];
     CreateCmdList(L);
+    tMemList *memList;
+    memList = malloc(sizeof(tMemList));
+    
+    createEmptyMemList(memList);
 
     while (1){
         printf("*) ");
