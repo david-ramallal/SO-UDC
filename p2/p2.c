@@ -314,60 +314,57 @@ void deleteRec(char *fileName)
   }  
 }
 
-void printWeekDay(int numDay, char *weekDay){
+void printWeekDay(int numDay, char **weekDay){
 	switch (numDay){
-		case 0: weekDay = "Mon";
+		case 0: *weekDay = "Mon";
 			break;
-		case 1: weekDay = "Tue";
+		case 1: *weekDay = "Tue";
 			break;
-		case 2: weekDay = "Wed";
+		case 2: *weekDay = "Wed";
 			break;
-		case 3: weekDay = "Thu";
+		case 3: *weekDay = "Thu";
 			break;
-		case 4: weekDay = "Fri";
+		case 4: *weekDay = "Fri";
 			break;
-		case 5: weekDay = "Sat";
+		case 5: *weekDay = "Sat";
 			break;
-		case 6: weekDay = "Sun";
+		case 6: *weekDay = "Sun";
 			break;
 		default: 
 			break;
 		};
-	
 }
 
-void printMonth(int numMonth, char *month){
+void printMonth(int numMonth, char **month){
 	switch (numMonth){
-		case 0: month = "Jan";
+		case 0: *month = "Jan";
 			break;
-		case 1: month = "Feb";
+		case 1: *month = "Feb";
 			break;
-		case 2: month = "Mar";
+		case 2: *month = "Mar";
 			break;
-		case 3: month = "Apr";
+		case 3: *month = "Apr";
 			break;
-		case 4: month = "May";
+		case 4: *month = "May";
 			break;
-		case 5: month = "Jun";
+		case 5: *month = "Jun";
 			break;
-		case 6: month = "Jul";
+		case 6: *month = "Jul";
 			break;
-		case 7: month = "Aug";
+		case 7: *month = "Aug";
 			break;
-		case 8: month = "Sep";
+		case 8: *month = "Sep";
 			break;
-		case 9: month = "Oct";
+		case 9: *month = "Oct";
 			break;
-		case 10: month = "Nov";
+		case 10: *month = "Nov";
 			break;
-		case 11: month = "Dec";
+		case 11: *month = "Dec";
 			break;
 		default: 
 			break;
-		};
-	
+		};	
 }
-
 
 void printMemList(char *memType, tMemList l){
 	tMemPos p;
@@ -377,12 +374,11 @@ void printMemList(char *memType, tMemList l){
 	if(!strcmp(memType, "malloc")){
 		for(p=first(l); p != NULL ; p = next(p, l)){
 			memItem item = getItem(p, l);
-			printWeekDay(item.memTime.tm_wday, weekDay);
-			printMonth(item.memTime.tm_mon, month);
+			printWeekDay(item.memTime.tm_wday, &weekDay);
+			printMonth(item.memTime.tm_mon, &month);
 			printf("%s: size:%zd. malloc %s %s %d %02d:%02d:%02d %d\n", item.address, item.memSize, weekDay, month, item.memTime.tm_mday, item.memTime.tm_hour, item.memTime.tm_min, item.memTime.tm_sec, (item.memTime.tm_year + 1900));
 		}
-	}
-	
+	}	
 }
 
 void cmd_autores (char *tr[])
@@ -701,9 +697,7 @@ void cmd_malloc(char *tr[]){
 			freeItem = getItem(findItemSize(size, *memList), *memList);
 			strcpy(address, freeItem.address);
 			deleteAtPosition(findItemSize(size, *memList), memList);
-			printf("deallocated %zd at %s\n", size, address);
-			//free(address);
-			
+			printf("deallocated %zd at %s\n", size, address);			
 		}else{
 			size = atoi(tr[0]);
 			address = malloc(size);	
@@ -715,6 +709,7 @@ void cmd_malloc(char *tr[]){
 			printf("allocated %zd at %s\n", size, address);
 			insertItem(item, memList);
 		}
+		free(address);
 	}
 	
 }
