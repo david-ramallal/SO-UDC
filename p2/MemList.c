@@ -127,3 +127,14 @@ tMemPos findItem(char *address, tMemList l)
     else
         return NULL;
 }
+
+tMemPos findItemSize(size_t size, tMemList l)
+{
+    tMemPos p;
+
+    for (p=l;(p!=NULL) && (p->data.memSize != size); p=p->next);
+    if ((p!=NULL) && (p->data.memSize == size))
+        return p;
+    else
+        return NULL;
+}

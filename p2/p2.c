@@ -25,6 +25,7 @@
 #define MAXLINEA 1024
 
 TCMDLIST L;
+tMemList *memList;
 
 struct CMD{
     char * name;
@@ -311,6 +312,77 @@ void deleteRec(char *fileName)
        }else
           delete(fileName);
   }  
+}
+
+void printWeekDay(int numDay, char *weekDay){
+	switch (numDay){
+		case 0: weekDay = "Mon";
+			break;
+		case 1: weekDay = "Tue";
+			break;
+		case 2: weekDay = "Wed";
+			break;
+		case 3: weekDay = "Thu";
+			break;
+		case 4: weekDay = "Fri";
+			break;
+		case 5: weekDay = "Sat";
+			break;
+		case 6: weekDay = "Sun";
+			break;
+		default: 
+			break;
+		};
+	
+}
+
+void printMonth(int numMonth, char *month){
+	switch (numMonth){
+		case 0: month = "Jan";
+			break;
+		case 1: month = "Feb";
+			break;
+		case 2: month = "Mar";
+			break;
+		case 3: month = "Apr";
+			break;
+		case 4: month = "May";
+			break;
+		case 5: month = "Jun";
+			break;
+		case 6: month = "Jul";
+			break;
+		case 7: month = "Aug";
+			break;
+		case 8: month = "Sep";
+			break;
+		case 9: month = "Oct";
+			break;
+		case 10: month = "Nov";
+			break;
+		case 11: month = "Dec";
+			break;
+		default: 
+			break;
+		};
+	
+}
+
+
+void printMemList(char *memType, tMemList l){
+	tMemPos p;
+	char *weekDay = "";
+	char *month = "";
+	
+	if(!strcmp(memType, "malloc")){
+		for(p=first(l); p != NULL ; p = next(p, l)){
+			memItem item = getItem(p, l);
+			printWeekDay(item.memTime.tm_wday, weekDay);
+			printMonth(item.memTime.tm_mon, month);
+			printf("%s: size:%zd. malloc %s %s %d %02d:%02d:%02d %d\n", item.address, item.memSize, weekDay, month, item.memTime.tm_mday, item.memTime.tm_hour, item.memTime.tm_min, item.memTime.tm_sec, (item.memTime.tm_year + 1900));
+		}
+	}
+	
 }
 
 void cmd_autores (char *tr[])
@@ -612,26 +684,37 @@ void cmd_listdir(char *tr[]){
 
 void cmd_malloc(char *tr[]){
 	size_t size;
-	char *address;
+	char *address = "";
 	memItem item;
+	item.memType = "";
 	time_t t;
     struct tm * timeinfo;
     time(&t);
     timeinfo = localtime(&t);
+    memItem freeItem;
 	
 	if((tr[0] == NULL) || (!strcmp(tr[0], "-free") && tr[1] == NULL )){
-		//mostrar lista con mallocs
+		printMemList("malloc", *memList);
 	}else{
-		if(!strcmp(tr[0], "-free"))
+		if(!strcmp(tr[0], "-free")){
 			size = atoi(tr[1]);
-		else
+			freeItem = getItem(findItemSize(size, *memList), *memList);
+			strcpy(address, freeItem.address);
+			deleteAtPosition(findItemSize(size, *memList), memList);
+			printf("deallocated %zd at %s\n", size, address);
+			//free(address);
+			
+		}else{
 			size = atoi(tr[0]);
-		address = malloc(size);
-		strcpy(item.address, address);
-		item.memSize = size;
-		item.memTime = timeinfo;
-		
-		
+			address = malloc(size);	
+			item.address = address;
+			item.memSize = size;
+			item.memTime = *timeinfo;
+			item.memType = "malloc";
+			item.otherInfo = NULL;
+			printf("allocated %zd at %s\n", size, address);
+			insertItem(item, memList);
+		}
 	}
 	
 }
@@ -699,7 +782,6 @@ int main()
     char *tr[MAXLINEA/2];
     char aux[MAXLINEA];
     CreateCmdList(L);
-    tMemList *memList;
     memList = malloc(sizeof(tMemList));
     
     createEmptyMemList(memList);
