@@ -21,8 +21,10 @@
 #include "CmdList.h"
 #include "MemList.h"
 #include <errno.h>
+#include <sys/mman.h>
 
 #define MAXLINEA 1024
+#define LEERCOMPLETO ((ssize_t)-1)
 
 TCMDLIST L;
 tMemList *memList;
@@ -376,9 +378,36 @@ void printMemList(char *memType, tMemList l){
 			memItem item = getItem(p, l);
 			printWeekDay(item.memTime.tm_wday, &weekDay);
 			printMonth(item.memTime.tm_mon, &month);
-			printf("%s: size:%zd. malloc %s %s %d %02d:%02d:%02d %d\n", item.address, item.memSize, weekDay, month, item.memTime.tm_mday, item.memTime.tm_hour, item.memTime.tm_min, item.memTime.tm_sec, (item.memTime.tm_year + 1900));
+			printf("%p: size:%zd. malloc %s %s %d %02d:%02d:%02d %d\n", item.address, item.memSize, weekDay, month, item.memTime.tm_mday, item.memTime.tm_hour, item.memTime.tm_min, item.memTime.tm_sec, (item.memTime.tm_year + 1900));
 		}
-	}	
+	}else 
+	if(!strcmp(memType, "mmap")){
+		for(p=first(l); p != NULL ; p = next(p, l)){
+			memItem item = getItem(p, l);
+			printWeekDay(item.memTime.tm_wday, &weekDay);
+			printMonth(item.memTime.tm_mon, &month);
+			printf("%p: size:%zd. mmap %s (fd:%d) %s %s %d %02d:%02d:%02d %d\n", item.address, item.memSize, item.otherInfo ,item.df , weekDay, month, item.memTime.tm_mday, item.memTime.tm_hour, item.memTime.tm_min, item.memTime.tm_sec, (item.memTime.tm_year + 1900));
+		}
+	}
+}
+
+ssize_t LeerFichero (char *fich, void *p, ssize_t n){
+	/* le n bytes del fichero fich en p */
+	ssize_t nleidos,tam=n; /*si n==-1 lee el fichero completo*/
+	int df, aux;
+	struct stat s;
+	if (stat (fich,&s)==-1 || (df=open(fich,O_RDONLY))==-1)
+		return ((ssize_t)-1);
+	if (n==LEERCOMPLETO)
+		tam=(ssize_t) s.st_size;
+	if ((nleidos=read(df,p, tam))==-1){
+		aux=errno;
+		close(df);
+		errno=aux;
+		return ((ssize_t)-1);
+	}
+	close (df);
+	return (nleidos);
 }
 
 void cmd_autores (char *tr[])
@@ -694,10 +723,13 @@ void cmd_malloc(char *tr[]){
 	}else{
 		if(!strcmp(tr[0], "-free")){
 			size = atoi(tr[1]);
-			freeItem = getItem(findItemSize(size, *memList), *memList);
-			strcpy(address, freeItem.address);
-			deleteAtPosition(findItemSize(size, *memList), memList);
-			printf("deallocated %zd at %s\n", size, address);			
+			if(findItemSize(size, *memList) != NULL){
+				freeItem = getItem(findItemSize(size, *memList), *memList);
+				address = freeItem.address;
+				deleteAtPosition(findItemSize(size, *memList), memList);
+				printf("deallocated %zd at %p\n", size, address);		
+			}else
+				printMemList("malloc", *memList);
 		}else{
 			size = atoi(tr[0]);
 			address = malloc(size);	
@@ -706,16 +738,78 @@ void cmd_malloc(char *tr[]){
 			item.memTime = *timeinfo;
 			item.memType = "malloc";
 			item.otherInfo = NULL;
-			printf("allocated %zd at %s\n", size, address);
+			item.df = 0;
+			printf("allocated %zd at %p\n", size, address);
 			insertItem(item, memList);
+			free(address);
 		}
-		free(address);
 	}
 	
 }
 
-void cmd_mmap(char *tr[]){
+void * MmapFichero (char *fichero, int protection){
+	int df, map=MAP_PRIVATE,modo=O_RDONLY;
+	struct stat s;
+	void *p;
+	memItem item;
+	time_t t;
+    struct tm * timeinfo;
+    time(&t);
+    timeinfo = localtime(&t);
+    item.otherInfo = "";
+    
 	
+	if (protection&PROT_WRITE) modo = O_RDWR;
+	if (stat(fichero,&s)==-1 || (df=open(fichero, modo))==-1)
+		return NULL;
+	if ((p=mmap (NULL,s.st_size, protection,map,df,0)) == MAP_FAILED)
+		return NULL;
+	
+	item.address = p;
+	item.df = df;
+	item.otherInfo = fichero;
+	item.memSize = s.st_size;
+	item.memTime = *timeinfo;
+	item.memType = "mmap";
+	
+	insertItem(item, memList);
+	
+	return p;
+}
+
+void cmd_mmap(char *tr[]){
+	char *perm;
+	memItem freeItem;
+	char *address = "";
+	void *p;
+	int protection=0;
+	if((tr[0] == NULL) || (!strcmp(tr[0], "-free") && tr[1] == NULL )){
+				printMemList("mmap", *memList);
+		return;
+	}else{
+		if(!strcmp(tr[0], "-free")){
+			if(findItemOtherInfo(tr[1], *memList) != NULL){
+				freeItem = getItem(findItemOtherInfo(tr[1], *memList), *memList);
+				address = freeItem.address;
+				munmap(address, freeItem.memSize);
+				deleteAtPosition(findItemOtherInfo(tr[1], *memList), memList);
+			}else{
+				printMemList("mmap", *memList);
+				
+			}
+			
+			return;
+		}else if ((perm=tr[1])!= NULL && strlen(perm)<4) {
+			if (strchr(perm,'r')!=NULL) protection|=PROT_READ;
+			if (strchr(perm,'w')!=NULL) protection|=PROT_WRITE;
+			if (strchr(perm,'x')!=NULL) protection|=PROT_EXEC;
+		}
+	}
+	if ((p=MmapFichero(tr[0],protection))==NULL)
+		perror ("mmap not possible");
+	else{
+		printf ("file %s mapped at %p\n", tr[0], p);
+	}
 }
 
 void cmd_shared(char *tr[]){

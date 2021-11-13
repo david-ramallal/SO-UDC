@@ -138,3 +138,14 @@ tMemPos findItemSize(size_t size, tMemList l)
     else
         return NULL;
 }
+
+tMemPos findItemOtherInfo(char *otherInfo, tMemList l)
+{
+    tMemPos p;
+
+    for (p=l;(p!=NULL) && (strcmp(p->data.otherInfo,otherInfo) < 0); p=p->next);
+    if ((p!=NULL) && (strcmp(p->data.otherInfo,otherInfo) == 0))
+        return p;
+    else
+        return NULL;
+}
