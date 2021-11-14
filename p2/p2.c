@@ -921,7 +921,7 @@ void cmd_shared(char *tr[]){
 void cmd_dealloc(char *tr[]){
 	memItem freeItem;
 	size_t size;
-	char * address;
+	char * address = malloc(sizeof(char *));
 	if(tr[0]==NULL || ((!strcmp(tr[0], "-malloc") || !strcmp(tr[0], "-mmap") || !strcmp(tr[0], "-shared")) && tr[1] == NULL)){
 		printMemList("dealloc", *memList); 
 		return;
@@ -929,22 +929,22 @@ void cmd_dealloc(char *tr[]){
 	if((strcmp(tr[0], "-malloc") || strcmp(tr[0], "-mmap") || strcmp(tr[0], "-shared")) && tr[1] == NULL){
 		if(findItem(tr[0], *memList) != NULL){
 			freeItem = getItem((findItem(tr[0], *memList)), *memList);
-			address = freeItem.address;
+			sprintf(address, "%p", freeItem.address);
 			if(!strcmp(freeItem.memType, "malloc")){
 				deleteAtPosition(findItem(address, *memList), memList);
-				printf("block at address %p deallocated (malloc)\n", address);	
+				printf("block at address %s deallocated (malloc)\n", address);
 				free(address);
 			}else if(!strcmp(freeItem.memType, "mmap")){
 				deleteAtPosition(findItem(address, *memList), memList);
-				printf("block at address %p deallocated (mmap)\n", address);
+				printf("block at address %s deallocated (mmap)\n", address);
 				munmap(address, freeItem.memSize);
 			}else if(!strcmp(freeItem.memType, "shared")){
 				deleteAtPosition(findItem(address, *memList), memList);
-				printf("block at address %p deallocated (shared)\n", address);
+				printf("block at address %s deallocated (shared)\n", address);
 				//Eliminar como en shared aqui                                                                                          <-  <-  <-
 			}			
 		}else{
-			printMemList("dealloc", *memList);                               //No funciona borrar al buscar por address
+			printMemList("dealloc", *memList);
 			return;
 		}		
 	}else

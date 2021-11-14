@@ -119,12 +119,23 @@ void updateItem(memItem d, tMemPos p, tMemList *l)
 tMemPos findItem(char *address, tMemList l)
 {
     tMemPos p;
-
-    for (p=l;(p!=NULL) && (strcmp(p->data.address,address) < 0); p=p->next);
-    if ((p!=NULL) && (strcmp(p->data.address, address) == 0))
+    char *addr;
+    addr = malloc(sizeof(char*));
+    
+    for(p=l; (p!=NULL) ; p = p->next){
+		sprintf(addr, "%p", p->data.address);
+		if(strcmp(addr, address) == 0)
+			break;
+		
+	} 
+	
+    if ((p!=NULL) && (strcmp(addr, address) == 0)){
+		free(addr);
         return p;
-    else
+    }else{
+		free(addr);
         return NULL;
+	}
 }
 
 tMemPos findItemSize(size_t size, tMemList l)
