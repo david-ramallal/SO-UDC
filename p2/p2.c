@@ -22,6 +22,8 @@
 #include "MemList.h"
 #include <errno.h>
 #include <sys/mman.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
 
 #define MAXLINEA 1024
 #define LEERCOMPLETO ((ssize_t)-1)
@@ -389,6 +391,15 @@ void printMemList(char *memType, tMemList l){
 			printMonth(item.memTime.tm_mon, &month);
 			if(!strcmp(item.memType, "mmap"))
 				printf("%p: size:%zd. mmap %s (fd:%d) %s %s %d %02d:%02d:%02d %d\n", item.address, item.memSize, item.otherInfo ,item.df , weekDay, month, item.memTime.tm_mday, item.memTime.tm_hour, item.memTime.tm_min, item.memTime.tm_sec, (item.memTime.tm_year + 1900));
+		}
+	}else 
+	if(!strcmp(memType, "shared")){
+		for(p=first(l); p != NULL ; p = next(p, l)){
+			memItem item = getItem(p, l);
+			printWeekDay(item.memTime.tm_wday, &weekDay);
+			printMonth(item.memTime.tm_mon, &month);
+			if(!strcmp(item.memType, "shared"))
+				printf("%p: size:%zd. shared memory (key: %d) %s %s %d %02d:%02d:%02d %d\n", item.address, item.memSize, item.df , weekDay, month, item.memTime.tm_mday, item.memTime.tm_hour, item.memTime.tm_min, item.memTime.tm_sec, (item.memTime.tm_year + 1900));
 		}
 	}
 }
@@ -813,7 +824,88 @@ void cmd_mmap(char *tr[]){
 	}
 }
 
+void * ObtenerMemoriaShmget (key_t clave, size_t tam){
+	/*Obtienen un puntero a una zaona de memoria compartida*/
+	/*si tam >0 intenta crearla y si tam==0 asume que existe*/
+	void * p;
+	int aux,id,flags = 0777;
+	struct shmid_ds s;
+	
+	memItem item;
+	time_t t;
+    struct tm * timeinfo;
+    time(&t);
+    timeinfo = localtime(&t);  
+    item.memType = malloc(sizeof(char *));
+    
+	if (tam)
+	/*si tam no es 0 la crea en modo exclusivo
+	esta funcion vale para shared y shared -create*/
+		flags=flags | IPC_CREAT | IPC_EXCL;
+	/*si tam es 0 intenta acceder a una ya creada*/
+	if (clave==IPC_PRIVATE)
+	/*no nos vale*/
+		{errno=EINVAL; return NULL;}
+	if ((id=shmget(clave, tam, flags))==-1)
+		return (NULL);
+	if ((p=shmat(id,NULL,0))==(void*) -1){
+		aux=errno;
+	/*si se ha creado y no se puede mapear*/
+		if (tam)
+		/*se borra */
+			shmctl(id,IPC_RMID,NULL);
+		errno=aux;
+		return (NULL);
+	}
+	shmctl (id,IPC_STAT,&s);
+
+	item.address = p;
+	item.df = clave;
+	item.otherInfo = NULL;
+	item.memSize = s.shm_segsz;
+	item.memTime = *timeinfo;
+	strcpy(item.memType, "shared");
+	
+	insertItem(item, memList);
+
+	return (p);
+}
+
 void cmd_shared(char *tr[]){
+	key_t k;
+	size_t tam = 0;
+	void *p;
+	//memItem freeItem;
+	if (tr[0]==NULL || ((!strcmp(tr[0], "-free") || !strcmp(tr[0], "-create")) && tr[1] == NULL) || (!strcmp(tr[0], "-create") && tr[1] != NULL && tr[2] == NULL)){
+		printMemList("shared", *memList); 
+		return;
+	}else if(!strcmp(tr[0], "-delkey") && tr[1] == NULL){
+		printf("\tshared -delkey needs valid key\n");
+		return;
+	}else{
+		if(!strcmp(tr[0], "-free")){
+			/*if(findItemKey(atoi(tr[1]), *memList) != NULL){
+				freeItem = getItem(findItemKey(atoi(tr[1]), *memList), *memList);
+				
+				deleteAtPosition(findItemKey(atoi(tr[1]), *memList), memList);
+			}*/
+		}
+		
+		
+		return;
+	}
+	if(!strcmp(tr[0], "-create"))
+		k=(key_t) atoi(tr[1]);
+	else
+		k=(key_t) atoi(tr[0]);
+		
+	if (tr[1]!=NULL)
+		tam=(size_t) atoll(tr[1]);
+	if ((p=ObtenerMemoriaShmget(k,tam))==NULL)
+		perror ("Cannot allocate");
+	else
+		printf ("Allocated shared memory (key %d) at %p\n",k,p);
+
 	
 }
 

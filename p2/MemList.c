@@ -148,3 +148,14 @@ tMemPos findItemOtherInfo(char *otherInfo, tMemList l)
     else
         return NULL;
 }
+
+tMemPos findItemKey(int key, tMemList l)
+{
+    tMemPos p;
+
+    for (p=l;(p!=NULL) && (p->data.df != key); p=p->next);
+    if ((p!=NULL) && (p->data.df == key))
+        return p;
+    else
+        return NULL;
+}

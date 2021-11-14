@@ -42,6 +42,7 @@ void updateItem(memItem d, tMemPos p, tMemList *l);
 tMemPos findItem(char *address, tMemList l);
 tMemPos findItemSize(size_t size, tMemList l);
 tMemPos findItemOtherInfo(char *otherInfo, tMemList l);
+tMemPos findItemKey(int key, tMemList l);
 
 
 #endif 
