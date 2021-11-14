@@ -713,7 +713,7 @@ void cmd_malloc(char *tr[]){
 	size_t size;
 	char *address = "";
 	memItem item;
-	item.memType = "";
+	item.memType = malloc(sizeof(char *));
 	time_t t;
     struct tm * timeinfo;
     time(&t);
@@ -738,7 +738,7 @@ void cmd_malloc(char *tr[]){
 			item.address = address;
 			item.memSize = size;
 			item.memTime = *timeinfo;
-			item.memType = "malloc";
+			strcpy(item.memType, "malloc");
 			item.otherInfo = NULL;
 			item.df = 0;
 			printf("allocated %zd at %p\n", size, address);
@@ -757,7 +757,8 @@ void * MmapFichero (char *fichero, int protection){
     struct tm * timeinfo;
     time(&t);
     timeinfo = localtime(&t);
-    item.otherInfo = "";    
+    item.otherInfo = malloc(sizeof(char *));  
+    item.memType = malloc(sizeof(char *));
 	
 	if (protection&PROT_WRITE) modo = O_RDWR;
 	if (stat(fichero,&s)==-1 || (df=open(fichero, modo))==-1)
@@ -767,10 +768,10 @@ void * MmapFichero (char *fichero, int protection){
 	
 	item.address = p;
 	item.df = df;
-	item.otherInfo = fichero;
+	strcpy(item.otherInfo, fichero);
 	item.memSize = s.st_size;
 	item.memTime = *timeinfo;
-	item.memType = "mmap";
+	strcpy(item.memType, "mmap");
 	
 	insertItem(item, memList);
 	
@@ -803,7 +804,7 @@ void cmd_mmap(char *tr[]){
 			if (strchr(perm,'r')!=NULL) protection|=PROT_READ;
 			if (strchr(perm,'w')!=NULL) protection|=PROT_WRITE;
 			if (strchr(perm,'x')!=NULL) protection|=PROT_EXEC;
-		}//else protection|=PROT_NONE;
+		}
 	}
 	if ((p=MmapFichero(tr[0],protection))==NULL)
 		perror ("mmap not possible");

@@ -72,11 +72,10 @@ bool insertItem(memItem d, tMemList *l)
         q->next = NULL;
         if(*l == NULL) // empty list
             *l = q;
-        else if (strcmp(d.address,((*l)->data.address)) < 0){ //inserting at the beggining of a non empty list
+        else if (d.address != (*l)->data.address){ //inserting at the beggining of a non empty list
             q->next = *l;
             *l = q;
-        }
-        else {  //insertion at the middle/end of a non empty list
+        }else {  //insertion at the middle/end of a non empty list
             p = findPosition (*l, d);
             q -> next = p -> next;
             p -> next = q;
