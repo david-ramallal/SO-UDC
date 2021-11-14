@@ -378,7 +378,8 @@ void printMemList(char *memType, tMemList l){
 			memItem item = getItem(p, l);
 			printWeekDay(item.memTime.tm_wday, &weekDay);
 			printMonth(item.memTime.tm_mon, &month);
-			printf("%p: size:%zd. malloc %s %s %d %02d:%02d:%02d %d\n", item.address, item.memSize, weekDay, month, item.memTime.tm_mday, item.memTime.tm_hour, item.memTime.tm_min, item.memTime.tm_sec, (item.memTime.tm_year + 1900));
+			if(!strcmp(item.memType, "malloc"))
+				printf("%p: size:%zd. malloc %s %s %d %02d:%02d:%02d %d\n", item.address, item.memSize, weekDay, month, item.memTime.tm_mday, item.memTime.tm_hour, item.memTime.tm_min, item.memTime.tm_sec, (item.memTime.tm_year + 1900));
 		}
 	}else 
 	if(!strcmp(memType, "mmap")){
@@ -386,7 +387,8 @@ void printMemList(char *memType, tMemList l){
 			memItem item = getItem(p, l);
 			printWeekDay(item.memTime.tm_wday, &weekDay);
 			printMonth(item.memTime.tm_mon, &month);
-			printf("%p: size:%zd. mmap %s (fd:%d) %s %s %d %02d:%02d:%02d %d\n", item.address, item.memSize, item.otherInfo ,item.df , weekDay, month, item.memTime.tm_mday, item.memTime.tm_hour, item.memTime.tm_min, item.memTime.tm_sec, (item.memTime.tm_year + 1900));
+			if(!strcmp(item.memType, "mmap"))
+				printf("%p: size:%zd. mmap %s (fd:%d) %s %s %d %02d:%02d:%02d %d\n", item.address, item.memSize, item.otherInfo ,item.df , weekDay, month, item.memTime.tm_mday, item.memTime.tm_hour, item.memTime.tm_min, item.memTime.tm_sec, (item.memTime.tm_year + 1900));
 		}
 	}
 }
@@ -743,8 +745,7 @@ void cmd_malloc(char *tr[]){
 			insertItem(item, memList);
 			free(address);
 		}
-	}
-	
+	}	
 }
 
 void * MmapFichero (char *fichero, int protection){
@@ -756,8 +757,7 @@ void * MmapFichero (char *fichero, int protection){
     struct tm * timeinfo;
     time(&t);
     timeinfo = localtime(&t);
-    item.otherInfo = "";
-    
+    item.otherInfo = "";    
 	
 	if (protection&PROT_WRITE) modo = O_RDWR;
 	if (stat(fichero,&s)==-1 || (df=open(fichero, modo))==-1)
@@ -803,7 +803,7 @@ void cmd_mmap(char *tr[]){
 			if (strchr(perm,'r')!=NULL) protection|=PROT_READ;
 			if (strchr(perm,'w')!=NULL) protection|=PROT_WRITE;
 			if (strchr(perm,'x')!=NULL) protection|=PROT_EXEC;
-		}
+		}//else protection|=PROT_NONE;
 	}
 	if ((p=MmapFichero(tr[0],protection))==NULL)
 		perror ("mmap not possible");
