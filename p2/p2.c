@@ -401,6 +401,19 @@ void printMemList(char *memType, tMemList l){
 			if(!strcmp(item.memType, "shared"))
 				printf("%p: size:%zd. shared memory (key: %d) %s %s %d %02d:%02d:%02d %d\n", item.address, item.memSize, item.df , weekDay, month, item.memTime.tm_mday, item.memTime.tm_hour, item.memTime.tm_min, item.memTime.tm_sec, (item.memTime.tm_year + 1900));
 		}
+	}else 
+	if(!strcmp(memType, "dealloc")){
+		for(p=first(l); p != NULL ; p = next(p, l)){
+			memItem item = getItem(p, l);
+			printWeekDay(item.memTime.tm_wday, &weekDay);
+			printMonth(item.memTime.tm_mon, &month);
+			if(!strcmp(item.memType, "shared"))
+				printf("%p: size:%zd. shared memory (key: %d) %s %s %d %02d:%02d:%02d %d\n", item.address, item.memSize, item.df , weekDay, month, item.memTime.tm_mday, item.memTime.tm_hour, item.memTime.tm_min, item.memTime.tm_sec, (item.memTime.tm_year + 1900));
+			if(!strcmp(item.memType, "mmap"))
+				printf("%p: size:%zd. mmap %s (fd:%d) %s %s %d %02d:%02d:%02d %d\n", item.address, item.memSize, item.otherInfo ,item.df , weekDay, month, item.memTime.tm_mday, item.memTime.tm_hour, item.memTime.tm_min, item.memTime.tm_sec, (item.memTime.tm_year + 1900));
+		    if(!strcmp(item.memType, "malloc"))
+				printf("%p: size:%zd. malloc %s %s %d %02d:%02d:%02d %d\n", item.address, item.memSize, weekDay, month, item.memTime.tm_mday, item.memTime.tm_hour, item.memTime.tm_min, item.memTime.tm_sec, (item.memTime.tm_year + 1900));	
+		}
 	}
 }
 
@@ -806,10 +819,8 @@ void cmd_mmap(char *tr[]){
 				munmap(address, freeItem.memSize);
 				deleteAtPosition(findItemOtherInfo(tr[1], *memList), memList);
 			}else{
-				printMemList("mmap", *memList);
-				
-			}
-			
+				printMemList("mmap", *memList);				
+			}			
 			return;
 		}else if ((perm=tr[1])!= NULL && strlen(perm)<4) {
 			if (strchr(perm,'r')!=NULL) protection|=PROT_READ;
@@ -910,7 +921,53 @@ void cmd_shared(char *tr[]){
 }
 
 void cmd_dealloc(char *tr[]){
-	
+	memItem freeItem;
+	size_t size;
+	char * address;
+	if(tr[0]==NULL || ((!strcmp(tr[0], "-malloc") || !strcmp(tr[0], "-mmap") || !strcmp(tr[0], "-shared")) && tr[1] == NULL)){
+		printMemList("dealloc", *memList); 
+		return;
+	}else
+	if((strcmp(tr[0], "-malloc") || strcmp(tr[0], "-mmap") || strcmp(tr[0], "-shared")) && tr[1] == NULL){
+		if(findItem(tr[0], *memList) != NULL){
+			freeItem = getItem((findItem(tr[0], *memList)), *memList);
+			address = freeItem.address;
+			//terminar esto -> que borre buscando por posiciones de memoria
+			
+		}else{
+			printMemList("dealloc", *memList); 
+			return;
+		}		
+	}else
+	if(!strcmp(tr[0], "-malloc")){
+			size = atoi(tr[1]);
+			if(findItemSize(size, *memList) != NULL){
+				freeItem = getItem(findItemSize(size, *memList), *memList);
+				address = freeItem.address;
+				deleteAtPosition(findItemSize(size, *memList), memList);
+				printf("block at address %p deallocated (malloc)\n", address);	
+				free(address);
+			}else
+				printMemList("malloc", *memList);
+		}else
+		if(!strcmp(tr[0], "-mmap")){
+			if(findItemOtherInfo(tr[1], *memList) != NULL){
+				freeItem = getItem(findItemOtherInfo(tr[1], *memList), *memList);
+				address = freeItem.address;
+				munmap(address, freeItem.memSize);
+				deleteAtPosition(findItemOtherInfo(tr[1], *memList), memList);
+			}else
+				printMemList("mmap", *memList);				
+		}else
+		if(!strcmp(tr[0], "-shared")){
+			if(findItemOtherInfo(tr[1], *memList) != NULL){
+				freeItem = getItem(findItemOtherInfo(tr[1], *memList), *memList);
+				address = freeItem.address;
+				//Eliminar como en shared aqui
+				deleteAtPosition(findItemOtherInfo(tr[1], *memList), memList);
+			}else
+				printMemList("shared", *memList);				
+		}
 }
 
 void cmd_memoria(char *tr[]){
