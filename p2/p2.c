@@ -844,7 +844,6 @@ void SharedDelkey (char *args[]) /*arg[0] points to a str containing the key*/
 		printf ("shared -delkey valid key\n");
 		return;
 	}
-	
 	if ((id=shmget(clave,0,0666))==-1){
 		perror ("shmget: imposible to obtain shared memory");
 		return;
@@ -904,7 +903,8 @@ void cmd_shared(char *tr[]){
 	key_t k;
 	size_t tam = 0;
 	void *p;
-	int id;
+	char * address;
+	//int id;
 	memItem freeItem;
 	tMemPos pos;
 	if (tr[0]==NULL || ((!strcmp(tr[0], "-free") || !strcmp(tr[0], "-create")) && tr[1] == NULL) || (!strcmp(tr[0], "-create") && tr[1] != NULL && tr[2] == NULL)){
@@ -916,23 +916,22 @@ void cmd_shared(char *tr[]){
 	}else{
 		if(!strcmp(tr[0], "-free")){
 			if((pos = findItemKey(atoi(tr[1]), *memList)) != NULL){
+				//freeItem = getItem(pos, *memList);
+				//p=ObtenerMemoriaShmget(atoi(tr[1]),freeItem.memSize);
+				//munmap(address, freeItem.memSize);
 				freeItem = getItem(pos, *memList);
-				//p=ObtenerMemoriaShmget(atoi(tr[1]),tam);
-				//munmap(*p, freeItem.memSize);
+				address = freeItem.address;
+				shmdt(address);
 				deleteAtPosition(findItemKey(atoi(tr[1]), *memList), memList);
-				printf("Shared memory block at %p (key %d) has been dealocated\n", p, freeItem.df);
+				printf("Shared memory block at %p (key %d) has been dealocated\n", address, freeItem.df);
 			}else
 				printMemList("shared", *memList); 
 			return;
 		}else if (!strcmp(tr[0], "-delkey")){
 			SharedDelkey(tr);
 			return;
-		}
-		
-		
-		
-	}
-	
+		}	
+	}	
 	if(!strcmp(tr[0], "-create"))
 		k=(key_t) atoi(tr[1]);
 	else
@@ -940,7 +939,6 @@ void cmd_shared(char *tr[]){
 		
 	if (tr[1]!=NULL)
 		tam=(size_t) atoll(tr[1]);
-		
 	
 	if ((p=ObtenerMemoriaShmget(k,tam))==NULL)
 		perror ("Cannot allocate");
@@ -971,7 +969,7 @@ void cmd_dealloc(char *tr[]){
 			}else if(!strcmp(freeItem.memType, "shared")){
 				deleteAtPosition(findItem(address, *memList), memList);
 				printf("block at address %s deallocated (shared)\n", address);
-				//Eliminar como en shared aqui                                                                                          <-  <-  <-
+				shmdt(address);
 			}			
 		}else{
 			printMemList("dealloc", *memList);
@@ -1001,11 +999,11 @@ void cmd_dealloc(char *tr[]){
 	}else
 	if(!strcmp(tr[0], "-shared")){
 		if(findItemOtherInfo(tr[1], *memList) != NULL){
-			freeItem = getItem(findItemOtherInfo(tr[1], *memList), *memList);
+			freeItem = getItem(findItemKey(atoi(tr[1]), *memList), *memList);
 			address = freeItem.address;
-			deleteAtPosition(findItemOtherInfo(tr[1], *memList), memList);
+			deleteAtPosition(findItemKey(atoi(tr[1]), *memList), memList);
 			printf("block at address %p deallocated (shared)\n", address);
-			//Eliminar como en shared aqui                                                                                                      <-  <-  <-
+			shmdt(address);
 		}else
 			printMemList("shared", *memList);				
 	}
