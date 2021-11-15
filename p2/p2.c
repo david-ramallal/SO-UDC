@@ -916,9 +916,6 @@ void cmd_shared(char *tr[]){
 	}else{
 		if(!strcmp(tr[0], "-free")){
 			if((pos = findItemKey(atoi(tr[1]), *memList)) != NULL){
-				//freeItem = getItem(pos, *memList);
-				//p=ObtenerMemoriaShmget(atoi(tr[1]),freeItem.memSize);
-				//munmap(address, freeItem.memSize);
 				freeItem = getItem(pos, *memList);
 				address = freeItem.address;
 				shmdt(address);
@@ -937,7 +934,9 @@ void cmd_shared(char *tr[]){
 	else
 		k=(key_t) atoi(tr[0]);
 		
-	if (tr[1]!=NULL)
+	if(!strcmp(tr[0], "-create") && tr[2] != NULL)
+		tam=(size_t) atoll(tr[2]);
+	else if(tr[1] != NULL)
 		tam=(size_t) atoll(tr[1]);
 	
 	if ((p=ObtenerMemoriaShmget(k,tam))==NULL)
@@ -949,6 +948,7 @@ void cmd_shared(char *tr[]){
 void cmd_dealloc(char *tr[]){
 	memItem freeItem;
 	size_t size;
+	tMemPos pos;
 	char * address = malloc(sizeof(char *));
 	if(tr[0]==NULL || ((!strcmp(tr[0], "-malloc") || !strcmp(tr[0], "-mmap") || !strcmp(tr[0], "-shared")) && tr[1] == NULL)){
 		printMemList("dealloc", *memList); 
@@ -998,15 +998,15 @@ void cmd_dealloc(char *tr[]){
 				printMemList("mmap", *memList);				
 	}else
 	if(!strcmp(tr[0], "-shared")){
-		if(findItemOtherInfo(tr[1], *memList) != NULL){
-			freeItem = getItem(findItemKey(atoi(tr[1]), *memList), *memList);
-			address = freeItem.address;
-			deleteAtPosition(findItemKey(atoi(tr[1]), *memList), memList);
-			printf("block at address %p deallocated (shared)\n", address);
-			shmdt(address);
-		}else
-			printMemList("shared", *memList);				
-	}
+			if((pos = findItemKey(atoi(tr[1]), *memList)) != NULL){
+				freeItem = getItem(pos, *memList);
+				address = freeItem.address;
+				shmdt(address);
+				deleteAtPosition(findItemKey(atoi(tr[1]), *memList), memList);
+				printf("Shared memory block at %p (key %d) has been dealocated\n", address, freeItem.df);
+			}else
+				printMemList("shared", *memList); 
+		}
 }
 
 void cmd_memoria(char *tr[]){
