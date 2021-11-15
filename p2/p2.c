@@ -835,6 +835,24 @@ void cmd_mmap(char *tr[]){
 	}
 }
 
+void SharedDelkey (char *args[]) /*arg[0] points to a str containing the key*/
+{
+	key_t clave;
+	int id;
+	char *key=args[1];
+	if (key==NULL || (clave=(key_t) strtoul(key,NULL,10))==IPC_PRIVATE){
+		printf ("shared -delkey valid key\n");
+		return;
+	}
+	
+	if ((id=shmget(clave,0,0666))==-1){
+		perror ("shmget: imposible to obtain shared memory");
+		return;
+	}
+	if (shmctl(id,IPC_RMID,NULL)==-1)
+		perror ("shmctl: imposible to delete shared memory");
+}
+
 void * ObtenerMemoriaShmget (key_t clave, size_t tam){
 	/*Obtienen un puntero a una zaona de memoria compartida*/
 	/*si tam >0 intenta crearla y si tam==0 asume que existe*/
@@ -899,26 +917,15 @@ void cmd_shared(char *tr[]){
 		if(!strcmp(tr[0], "-free")){
 			if((pos = findItemKey(atoi(tr[1]), *memList)) != NULL){
 				freeItem = getItem(pos, *memList);
-				id=shmget(freeItem.df, tam, IPC_PRIVATE);
-				p=shmat(id,NULL,0);
-				shmdt(p);
+				//p=ObtenerMemoriaShmget(atoi(tr[1]),tam);
+				//munmap(*p, freeItem.memSize);
 				deleteAtPosition(findItemKey(atoi(tr[1]), *memList), memList);
 				printf("Shared memory block at %p (key %d) has been dealocated\n", p, freeItem.df);
 			}else
 				printMemList("shared", *memList); 
 			return;
 		}else if (!strcmp(tr[0], "-delkey")){
-			if((pos = findItemKey(atoi(tr[1]), *memList)) != NULL){
-				freeItem = getItem(pos, *memList);
-				id=shmget(freeItem.df, tam, IPC_PRIVATE);
-				if(shmctl(id, IPC_RMID, NULL) == -1){
-					printf("Cannot remove key %d\n", atoi(tr[1]));
-				}
-				deleteAtPosition(findItemKey(atoi(tr[1]), *memList), memList);
-				printf("Key %d removed from the system\n", atoi(tr[1]));
-			}else{
-				printf("Cannot remove key %d\n", atoi(tr[1]));
-			}
+			SharedDelkey(tr);
 			return;
 		}
 		
