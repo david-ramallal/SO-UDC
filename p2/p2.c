@@ -886,7 +886,9 @@ void cmd_shared(char *tr[]){
 	key_t k;
 	size_t tam = 0;
 	void *p;
-	//memItem freeItem;
+	int id;
+	memItem freeItem;
+	tMemPos pos;
 	if (tr[0]==NULL || ((!strcmp(tr[0], "-free") || !strcmp(tr[0], "-create")) && tr[1] == NULL) || (!strcmp(tr[0], "-create") && tr[1] != NULL && tr[2] == NULL)){
 		printMemList("shared", *memList); 
 		return;
@@ -895,16 +897,35 @@ void cmd_shared(char *tr[]){
 		return;
 	}else{
 		if(!strcmp(tr[0], "-free")){
-			/*if(findItemKey(atoi(tr[1]), *memList) != NULL){
-				freeItem = getItem(findItemKey(atoi(tr[1]), *memList), *memList);
-				
+			if((pos = findItemKey(atoi(tr[1]), *memList)) != NULL){
+				freeItem = getItem(pos, *memList);
+				id=shmget(freeItem.df, tam, IPC_PRIVATE);
+				p=shmat(id,NULL,0);
+				shmdt(p);
 				deleteAtPosition(findItemKey(atoi(tr[1]), *memList), memList);
-			}*/
+				printf("Shared memory block at %p (key %d) has been dealocated\n", p, freeItem.df);
+			}else
+				printMemList("shared", *memList); 
+			return;
+		}else if (!strcmp(tr[0], "-delkey")){
+			if((pos = findItemKey(atoi(tr[1]), *memList)) != NULL){
+				freeItem = getItem(pos, *memList);
+				id=shmget(freeItem.df, tam, IPC_PRIVATE);
+				if(shmctl(id, IPC_RMID, NULL) == -1){
+					printf("Cannot remove key %d\n", atoi(tr[1]));
+				}
+				deleteAtPosition(findItemKey(atoi(tr[1]), *memList), memList);
+				printf("Key %d removed from the system\n", atoi(tr[1]));
+			}else{
+				printf("Cannot remove key %d\n", atoi(tr[1]));
+			}
+			return;
 		}
 		
 		
-		return;
+		
 	}
+	
 	if(!strcmp(tr[0], "-create"))
 		k=(key_t) atoi(tr[1]);
 	else
@@ -912,6 +933,8 @@ void cmd_shared(char *tr[]){
 		
 	if (tr[1]!=NULL)
 		tam=(size_t) atoll(tr[1]);
+		
+	
 	if ((p=ObtenerMemoriaShmget(k,tam))==NULL)
 		perror ("Cannot allocate");
 	else
