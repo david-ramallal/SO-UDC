@@ -1054,6 +1054,36 @@ void cmd_memoria(char *tr[]){
 }
 
 void cmd_volcarmem(char *tr[]){
+	int count;
+	int i;
+	void *init = tr[0];
+	unsigned char * addr = (unsigned char *) (init);
+	
+	
+	if(tr[1]==NULL)
+		count = 25;
+	else
+		count = atoi(tr[1]);
+		
+	for(i = 0; i<count; i++){
+		
+		printf(" %c", *addr);
+		if(i != count-1)
+			printf("  ");
+		else
+			printf("\n");
+		addr = addr + 1;
+	}
+	
+	for(i = 0; i<count; i++){
+		printf("%02X", *addr);
+		if(i != count-1)
+			printf("  ");
+		else
+			printf("\n");
+		addr = addr + 1;
+	}
+
 	
 }
 
@@ -1061,8 +1091,28 @@ void cmd_llenarmem(char *tr[]){
 	
 }
 
-void cmd_recursiva(char *tr[]){
+void recursiveFunct (int n)
+{
+	char automaticArray[4096];
 	
+	static char staticArray[4096];
+	
+	printf ("n parameter: %d at %p\n",n,&n);
+	
+	printf ("Static Array at %p \n", staticArray);
+	
+	printf ("Automatic Array at %p\n",automaticArray);
+	
+	n--;
+	if (n>0){
+		printf("--------------------------------\n");
+		recursiveFunct(n);
+	}
+}
+
+void cmd_recursiva(char *tr[]){
+	if(tr[0]!=NULL)
+		recursiveFunct(atoi(tr[0]));
 }
 
 void cmd_es(char *tr[]){
