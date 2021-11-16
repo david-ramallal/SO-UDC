@@ -24,6 +24,7 @@
 #include <sys/mman.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#include <sys/wait.h>
 
 #define MAXLINEA 1024
 #define LEERCOMPLETO ((ssize_t)-1)
@@ -376,6 +377,7 @@ void printMemList(char *memType, tMemList l){
 	char *month = "";
 	
 	if(!strcmp(memType, "malloc")){
+		printf("******List of malloc blocks assigned for the process %d\n", getpid());
 		for(p=first(l); p != NULL ; p = next(p, l)){
 			memItem item = getItem(p, l);
 			printWeekDay(item.memTime.tm_wday, &weekDay);
@@ -385,6 +387,7 @@ void printMemList(char *memType, tMemList l){
 		}
 	}else 
 	if(!strcmp(memType, "mmap")){
+		printf("******List of mmap blocks assigned for the process %d\n", getpid());
 		for(p=first(l); p != NULL ; p = next(p, l)){
 			memItem item = getItem(p, l);
 			printWeekDay(item.memTime.tm_wday, &weekDay);
@@ -394,6 +397,7 @@ void printMemList(char *memType, tMemList l){
 		}
 	}else 
 	if(!strcmp(memType, "shared")){
+		printf("******List of shared blocks assigned for the process %d\n", getpid());
 		for(p=first(l); p != NULL ; p = next(p, l)){
 			memItem item = getItem(p, l);
 			printWeekDay(item.memTime.tm_wday, &weekDay);
@@ -402,7 +406,8 @@ void printMemList(char *memType, tMemList l){
 				printf("%p: size:%zd. shared memory (key: %d) %s %s %d %02d:%02d:%02d %d\n", item.address, item.memSize, item.df , weekDay, month, item.memTime.tm_mday, item.memTime.tm_hour, item.memTime.tm_min, item.memTime.tm_sec, (item.memTime.tm_year + 1900));
 		}
 	}else 
-	if(!strcmp(memType, "dealloc")){
+	if(!strcmp(memType, "all")){
+		printf("******List of blocks assigned for the process %d\n", getpid());
 		for(p=first(l); p != NULL ; p = next(p, l)){
 			memItem item = getItem(p, l);
 			printWeekDay(item.memTime.tm_wday, &weekDay);
@@ -853,8 +858,6 @@ void SharedDelkey (char *args[]) /*arg[0] points to a str containing the key*/
 }
 
 void * ObtenerMemoriaShmget (key_t clave, size_t tam){
-	/*Obtienen un puntero a una zaona de memoria compartida*/
-	/*si tam >0 intenta crearla y si tam==0 asume que existe*/
 	void * p;
 	int aux,id,flags = 0777;
 	struct shmid_ds s;
@@ -867,20 +870,14 @@ void * ObtenerMemoriaShmget (key_t clave, size_t tam){
     item.memType = malloc(sizeof(char *));
     
 	if (tam)
-	/*si tam no es 0 la crea en modo exclusivo
-	esta funcion vale para shared y shared -create*/
 		flags=flags | IPC_CREAT | IPC_EXCL;
-	/*si tam es 0 intenta acceder a una ya creada*/
 	if (clave==IPC_PRIVATE)
-	/*no nos vale*/
 		{errno=EINVAL; return NULL;}
 	if ((id=shmget(clave, tam, flags))==-1)
 		return (NULL);
 	if ((p=shmat(id,NULL,0))==(void*) -1){
 		aux=errno;
-	/*si se ha creado y no se puede mapear*/
 		if (tam)
-		/*se borra */
 			shmctl(id,IPC_RMID,NULL);
 		errno=aux;
 		return (NULL);
@@ -951,7 +948,7 @@ void cmd_dealloc(char *tr[]){
 	tMemPos pos;
 	char * address = malloc(sizeof(char *));
 	if(tr[0]==NULL || ((!strcmp(tr[0], "-malloc") || !strcmp(tr[0], "-mmap") || !strcmp(tr[0], "-shared")) && tr[1] == NULL)){
-		printMemList("dealloc", *memList); 
+		printMemList("all", *memList); 
 		return;
 	}else
 	if((strcmp(tr[0], "-malloc") || strcmp(tr[0], "-mmap") || strcmp(tr[0], "-shared")) && tr[1] == NULL){
@@ -972,7 +969,7 @@ void cmd_dealloc(char *tr[]){
 				shmdt(address);
 			}			
 		}else{
-			printMemList("dealloc", *memList);
+			printMemList("all", *memList);
 			return;
 		}		
 	}else
@@ -1009,7 +1006,50 @@ void cmd_dealloc(char *tr[]){
 		}
 }
 
+void dopmap (void){ 
+	pid_t pid;
+	char elpid[32];
+	char *argv[3]={"pmap",elpid,NULL};
+	sprintf (elpid,"%d", (int) getpid());
+	if ((pid=fork())==-1){
+		perror ("Imposible crear proceso");
+		return;
+	}
+	if (pid==0){
+		if (execvp(argv[0],argv)==-1)
+		perror("cannot execute pmap");
+		exit(1);
+	}
+	waitpid (pid,NULL,0);
+}
+
 void cmd_memoria(char *tr[]){
+	double doubleExample = 0.5;
+	float floatExample = 1.5;
+	int intExample = 3;
+	static int intStExample = 0;
+	static float floatStExample = 5.5;
+	static double doubleStExample = 7.8;
+	if(tr[0] == NULL || !strcmp(tr[0], "-all")){
+		printf("Local variables%6s%p,%5s%p,%5s%p\n", "", &doubleExample, "", &floatExample, "", &intExample);
+		printf("Global variables%5s%p,%5s%p,%5s%p\n", "", &L, "", memList, "", &C);
+		printf("Static variables%5s%p,%5s%p,%5s%p\n", "", &intStExample, "",&floatStExample, "",&doubleStExample);
+		printf("Program functions%4s%p,%5s%p,%5s%p\n", "", &cmd_autores, "",&cmd_ayuda, "",&cmd_infosis);
+		printf("Library functions%4s%p,%5s%p,%5s%p\n", "", &strcmp, "",&printf, "",&waitpid);
+		printMemList("all", *memList);
+	}else if (!strcmp(tr[0], "-blocks")){
+		printMemList("all", *memList);
+	}else if (!strcmp(tr[0], "-vars")){
+		printf("Local variables%6s%p,%5s%p,%5s%p\n", "", &doubleExample, "", &floatExample, "", &intExample);
+		printf("Global variables%5s%p,%5s%p,%5s%p\n", "", &L, "", memList, "", &C);
+		printf("Static variables%5s%p,%5s%p,%5s%p\n", "", &intStExample, "",&floatStExample, "",&doubleStExample);
+		
+	}else if(!strcmp(tr[0], "-funcs")){
+		printf("Program functions%4s%p,%5s%p,%5s%p\n", "", &cmd_autores, "",&cmd_ayuda, "",&cmd_infosis);
+		printf("Library functions%4s%p,%5s%p,%5s%p\n", "", &strcmp, "",&printf, "",&waitpid);
+	}else if (!strcmp(tr[0], "-pmap")){
+		dopmap();
+	}
 	
 }
 
