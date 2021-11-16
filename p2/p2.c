@@ -1088,7 +1088,22 @@ void cmd_volcarmem(char *tr[]){
 }
 
 void cmd_llenarmem(char *tr[]){
-	
+  
+  void *addr = tr[0];
+  size_t cont;
+  int byte;
+  if(tr[1]==NULL){
+    cont = 128;
+    byte = 65;
+  }else if(tr[2]==NULL){
+    cont =  atoi(tr[1]);
+    byte = 65;
+  }else if(tr[2]!=NULL){
+    cont =  atoi(tr[1]);
+    byte = atoi(tr[2]);
+  }
+  printf("Filling %zd bytes of memory with byte %c(%d) from address %s\n", cont, byte, byte, tr[0]);
+  memset(addr, byte, cont);  
 }
 
 void recursiveFunct (int n)
