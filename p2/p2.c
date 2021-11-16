@@ -422,25 +422,6 @@ void printMemList(char *memType, tMemList l){
 	}
 }
 
-ssize_t LeerFichero (char *fich, void *p, ssize_t n){
-	/* le n bytes del fichero fich en p */
-	ssize_t nleidos,tam=n; /*si n==-1 lee el fichero completo*/
-	int df, aux;
-	struct stat s;
-	if (stat (fich,&s)==-1 || (df=open(fich,O_RDONLY))==-1)
-		return ((ssize_t)-1);
-	if (n==LEERCOMPLETO)
-		tam=(ssize_t) s.st_size;
-	if ((nleidos=read(df,p, tam))==-1){
-		aux=errno;
-		close(df);
-		errno=aux;
-		return ((ssize_t)-1);
-	}
-	close (df);
-	return (nleidos);
-}
-
 void cmd_autores (char *tr[])
 {
     printf("The authors are:\n");
@@ -1083,8 +1064,6 @@ void cmd_volcarmem(char *tr[]){
 			printf("\n");
 		addr = addr + 1;
 	}
-
-	
 }
 
 void cmd_llenarmem(char *tr[]){
@@ -1130,7 +1109,52 @@ void cmd_recursiva(char *tr[]){
 		recursiveFunct(atoi(tr[0]));
 }
 
+ssize_t LeerFichero (char *fich, void *p, ssize_t n){
+	/* le n bytes del fichero fich en p */
+	ssize_t nleidos,tam=n; /*si n==-1 lee el fichero completo*/
+	int df, aux;
+	struct stat s;
+	if (stat (fich,&s)==-1 || (df=open(fich,O_RDONLY))==-1)
+		return ((ssize_t)-1);
+	if (n==LEERCOMPLETO)
+		tam=(ssize_t) s.st_size;
+	if ((nleidos=read(df,p, tam))==-1){
+		aux=errno;
+		close(df);
+		errno=aux;
+		return ((ssize_t)-1);
+	}
+	close (df);
+	return (nleidos);
+}
+
 void cmd_es(char *tr[]){
+	char *fich;
+	void *address = malloc(sizeof(void *));
+	ssize_t count;
+	ssize_t total;
+	if(!strcmp(tr[0], "read")){
+		if(tr[1] == NULL || tr[2] == NULL){
+			printf("Parameters are needed\n");
+			return;
+		}else{
+			fich = tr[1];
+			strcpy(address, tr[2]);
+			if(tr[3] != NULL)
+				count = atoi(tr[3]);
+			else
+				count = -1;
+		}
+	total = LeerFichero(fich, address, count);
+	printf("%zd bytes read of %s in %s\n", total, tr[1], tr[2]);
+		
+	}else if(!strcmp(tr[0], "write")){
+		if(tr[1] == NULL || tr[2] == NULL)
+			printf("Parameters are needed\n");
+		
+	}
+	
+	
 	
 }
 
