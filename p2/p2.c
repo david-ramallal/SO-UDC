@@ -1106,7 +1106,8 @@ void cmd_llenarmem(char *tr[]){
 		ch = tr[2][1];
     strtol(&ch, &byteChar, 10);
     printf("Filling %zd bytes of memory with byte %c(%d) from address %s\n", cont, *byteChar, (int)*byteChar, tr[0]);
-    memset(addr, (int)*byteChar, cont);
+    memset(addr, (int)*byteChar, cont); 
+	free(byteChar);
     return;
     }else if(((tr[2][0]) == '0') && ((tr[2][1]) == 'x')){
 		byte = hextoAscii(tr[2][2], tr[2][3]);
@@ -1116,6 +1117,8 @@ void cmd_llenarmem(char *tr[]){
   }
   printf("Filling %zd bytes of memory with byte %c(%d) from address %s\n", cont, byte, byte, tr[0]);
   memset(addr, byte, cont);  
+  
+  free(byteChar);
 }
 
 void recursiveFunct (int n)
@@ -1143,8 +1146,7 @@ void cmd_recursiva(char *tr[]){
 }
 
 ssize_t LeerFichero (char *fich, void *p, ssize_t n){
-	/* le n bytes del fichero fich en p */
-	ssize_t nleidos,tam=n; /*si n==-1 lee el fichero completo*/
+	ssize_t nleidos,tam=n; 
 	int df, aux;
 	struct stat s;
 	if (stat (fich,&s)==-1 || (df=open(fich,O_RDONLY))==-1)
@@ -1163,22 +1165,30 @@ ssize_t LeerFichero (char *fich, void *p, ssize_t n){
 
 ssize_t WriteFichero (bool overWrite, char *fich, void *p, ssize_t n){
 	ssize_t nleidos,tam=n;
-	int df, aux;
+	int df,ctr = 0;
 	struct stat s;
-	if (stat (fich,&s)==-1 || (df=open(fich,O_RDONLY))==-1)
+	
+	if (stat (fich,&s)==-1 || (df=open(fich,O_RDONLY))==-1){
+		ctr = -1;
 		df=open(fich, O_CREAT|O_WRONLY|O_TRUNC, S_IRWXU);
-	if ((nleidos=write(df,p, tam))==-1){
-		aux=errno;
-		close(df);
-		errno=aux;
-		return ((ssize_t)-1);
+	}
+	
+	if(overWrite || ctr == -1){
+		if ((nleidos=write(df,p, tam))==-1){
+			delete(fich);
+			WriteFichero(overWrite, fich, p, n);
+		}else
+		 printf("%zd bytes write of %s in %p\n", n, fich, (char*)p);
+	}else{
+		printf("Impossible to write the file: File exists\n");
 	}
 	close (df);
+	
 	return (nleidos);
 }
 
 void cmd_es(char *tr[]){
-	char *fich = malloc (sizeof(char *));
+	char *fich; 
 	void *init;
 	ssize_t count;
 	ssize_t total;
@@ -1188,7 +1198,7 @@ void cmd_es(char *tr[]){
 			printf("Parameters are needed\n");
 			return;
 		}else{
-			sprintf(fich, "%s", tr[1]);
+			fich = tr[1];
 			init = (void *) strtol(tr[2], NULL, 16);
 			if(tr[3] != NULL)
 				count = atoi(tr[3]);
@@ -1209,20 +1219,17 @@ void cmd_es(char *tr[]){
 		
 		if(!strcmp(tr[1], "-o")){
 			overWrite = true;
-			sprintf(fich, "%s", tr[2]);
+			fich = tr[2];
 			init = (void *) strtol(tr[3], NULL, 16);
 			count = atoi(tr[4]);
 			total = WriteFichero(overWrite, fich, init, count);
-			printf("%zd bytes write of %s in %s\n", total, tr[2], tr[3]);
 		}else{
-			sprintf(fich, "%s", tr[1]);
+			fich = tr[1];
 			init = (void *) strtol(tr[2], NULL, 16);
 			count = atoi(tr[3]);
 			total = WriteFichero(overWrite, fich, init, count);
-			printf("%zd bytes write of %s in %s\n", total, tr[1], tr[2]);
 		}		
 	}
-	free(fich);
 }
 
 int trocearCadena (char *cadena, char *trozos[])
