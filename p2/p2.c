@@ -1034,36 +1034,38 @@ void cmd_memoria(char *tr[]){
 	
 }
 
+
 void cmd_volcarmem(char *tr[]){
-	int count;
-	int i;
-	void *init = tr[0];
-	unsigned char * addr = (unsigned char *) (init);
-	
-	
+
+	int count, i, j, numLines, totalCounter1 = 0, totalCounter2 = 0;
+	void *init = (void *) strtol(tr[0], NULL, 16);
+	unsigned char * addr1 = (unsigned char *) (init);
+	unsigned char * addr2 = (unsigned char *) (init);
+  
 	if(tr[1]==NULL)
 		count = 25;
 	else
 		count = atoi(tr[1]);
-		
-	for(i = 0; i<count; i++){
-		
-		printf(" %c", *addr);
-		if(i != count-1)
-			printf("  ");
-		else
-			printf("\n");
-		addr = addr + 1;
-	}
+    
+	numLines = count/25;
+	if(count%25 != 0)
+		numLines ++;
 	
-	for(i = 0; i<count; i++){
-		printf("%02X", *addr);
-		if(i != count-1)
-			printf("  ");
-		else
-			printf("\n");
-		addr = addr + 1;
+	for(i = 0; i<numLines; i++){
+		for(j = 0; j < 25 && totalCounter1 < count; j++){
+			printf("  %c ", *addr1);
+			addr1 = addr1 + 1;
+			totalCounter1 ++;
+		}
+		printf("\n");
+		for(j = 0; j < 25 && totalCounter2 < count; j++){
+			printf(" %02X ", *addr2);
+			addr2 = addr2 + 1;
+			totalCounter2 ++;
+		}
+		printf("\n");
 	}
+    
 }
 
 void cmd_llenarmem(char *tr[]){
@@ -1071,15 +1073,36 @@ void cmd_llenarmem(char *tr[]){
   void *addr = tr[0];
   size_t cont;
   int byte;
+  char *byteChar;
+  byteChar = malloc(sizeof(char *));
+  //char *helpChar;
+  //helpChar = malloc(sizeof(char *));
+  char ch;
   if(tr[1]==NULL){
     cont = 128;
     byte = 65;
   }else if(tr[2]==NULL){
     cont =  atoi(tr[1]);
-    byte = 65;
+    byte = 65; 
   }else if(tr[2]!=NULL){
     cont =  atoi(tr[1]);
-    byte = atoi(tr[2]);
+    if(((int)tr[2][0]) == 39){
+		ch = tr[2][1];
+    strtol(&ch, &byteChar, 10);
+    printf("Filling %zd bytes of memory with byte %c(%d) from address %s\n", cont, *byteChar, (int)*byteChar, tr[0]);
+    return;
+    }else if(((tr[2][0]) == '0') && ((tr[2][1]) == 'x')){
+		sprintf(byteChar, "%c%c", tr[2][2], tr [2][3]);
+		//ch = tr[2][2];
+		//strtol(&ch, &helpChar, 2);
+		//ch = tr[2][2] + tr [2][3];
+		strtol(byteChar, NULL, 16);
+		//strtol(&tr [2][3], NULL, 16);
+		printf("Filling %zd bytes of memory with byte %c(%d) from address %s\n", cont, *byteChar, (int)*byteChar, tr[0]);
+		return;
+	}else{
+		byte = atoi(tr[2]);
+	}
   }
   printf("Filling %zd bytes of memory with byte %c(%d) from address %s\n", cont, byte, byte, tr[0]);
   memset(addr, byte, cont);  
@@ -1128,6 +1151,25 @@ ssize_t LeerFichero (char *fich, void *p, ssize_t n){
 	return (nleidos);
 }
 
+/*ssize_t WriteFichero (bool overWrite, char *fich, void *p, ssize_t n){
+	// le n bytes del fichero fich en p
+	ssize_t nleidos,tam=n; //si n==-1 lee el fichero completo
+	int df, aux;
+	struct stat s;
+	if (stat (fich,&s)==-1 || (df=open(fich,O_RDONLY))==-1)
+		return ((ssize_t)-1);
+	if (n==LEERCOMPLETO)
+		tam=(ssize_t) s.st_size;
+	if ((nleidos=read(df,p, tam))==-1){
+		aux=errno;
+		close(df);
+		errno=aux;
+		return ((ssize_t)-1);
+	}
+	close (df);
+	return (nleidos);
+}*/
+
 void cmd_es(char *tr[]){
 	char *fich;
 	void *address = malloc(sizeof(void *));
@@ -1149,8 +1191,12 @@ void cmd_es(char *tr[]){
 	printf("%zd bytes read of %s in %s\n", total, tr[1], tr[2]);
 		
 	}else if(!strcmp(tr[0], "write")){
-		if(tr[1] == NULL || tr[2] == NULL)
+		if(tr[1] == NULL || tr[2] == NULL){
 			printf("Parameters are needed\n");
+			return;
+		}else{
+			
+		}
 		
 	}
 	
