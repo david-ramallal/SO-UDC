@@ -25,6 +25,7 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/wait.h>
+#include <ctype.h>
 
 #define MAXLINEA 1024
 #define LEERCOMPLETO ((ssize_t)-1)
@@ -1051,9 +1052,13 @@ void cmd_volcarmem(char *tr[]){
 	if(count%25 != 0)
 		numLines ++;
 	
+	printf("Tipping over %d bytes from the direction %s\n", count, tr[0]);
 	for(i = 0; i<numLines; i++){
 		for(j = 0; j < 25 && totalCounter1 < count; j++){
-			printf("  %c ", *addr1);
+			if(isprint(*addr1) != 0)
+				printf("  %c ", *addr1);
+			else
+				printf("    ");
 			addr1 = addr1 + 1;
 			totalCounter1 ++;
 		}
@@ -1068,15 +1073,26 @@ void cmd_volcarmem(char *tr[]){
     
 }
 
+int hextoAscii(char ch1, char ch2){
+	int big, sml;
+	
+	big = ((ch1 / 16) - 3)*10 + (ch1 % 16);
+	if(big > 9) big --;
+	
+	sml = ((ch2 / 16) - 3)*10 + (ch2 % 16);
+	if(sml > 9) sml --;
+	
+	return (big * 16 + sml);
+	
+}
+
 void cmd_llenarmem(char *tr[]){
   
-  void *addr = tr[0];
+  void *addr = (void *) strtol(tr[0], NULL, 16);
   size_t cont;
   int byte;
   char *byteChar;
   byteChar = malloc(sizeof(char *));
-  //char *helpChar;
-  //helpChar = malloc(sizeof(char *));
   char ch;
   if(tr[1]==NULL){
     cont = 128;
@@ -1090,16 +1106,10 @@ void cmd_llenarmem(char *tr[]){
 		ch = tr[2][1];
     strtol(&ch, &byteChar, 10);
     printf("Filling %zd bytes of memory with byte %c(%d) from address %s\n", cont, *byteChar, (int)*byteChar, tr[0]);
+    memset(addr, (int)*byteChar, cont);
     return;
     }else if(((tr[2][0]) == '0') && ((tr[2][1]) == 'x')){
-		sprintf(byteChar, "%c%c", tr[2][2], tr [2][3]);
-		//ch = tr[2][2];
-		//strtol(&ch, &helpChar, 2);
-		//ch = tr[2][2] + tr [2][3];
-		strtol(byteChar, NULL, 16);
-		//strtol(&tr [2][3], NULL, 16);
-		printf("Filling %zd bytes of memory with byte %c(%d) from address %s\n", cont, *byteChar, (int)*byteChar, tr[0]);
-		return;
+		byte = hextoAscii(tr[2][2], tr[2][3]);
 	}else{
 		byte = atoi(tr[2]);
 	}
