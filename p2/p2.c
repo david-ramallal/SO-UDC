@@ -1161,16 +1161,13 @@ ssize_t LeerFichero (char *fich, void *p, ssize_t n){
 	return (nleidos);
 }
 
-/*ssize_t WriteFichero (bool overWrite, char *fich, void *p, ssize_t n){
-	// le n bytes del fichero fich en p
-	ssize_t nleidos,tam=n; //si n==-1 lee el fichero completo
+ssize_t WriteFichero (bool overWrite, char *fich, void *p, ssize_t n){
+	ssize_t nleidos,tam=n;
 	int df, aux;
 	struct stat s;
 	if (stat (fich,&s)==-1 || (df=open(fich,O_RDONLY))==-1)
-		return ((ssize_t)-1);
-	if (n==LEERCOMPLETO)
-		tam=(ssize_t) s.st_size;
-	if ((nleidos=read(df,p, tam))==-1){
+		df=open(fich, O_CREAT|O_WRONLY|O_TRUNC, S_IRWXU);
+	if ((nleidos=write(df,p, tam))==-1){
 		aux=errno;
 		close(df);
 		errno=aux;
@@ -1178,40 +1175,54 @@ ssize_t LeerFichero (char *fich, void *p, ssize_t n){
 	}
 	close (df);
 	return (nleidos);
-}*/
+}
 
 void cmd_es(char *tr[]){
-	char *fich;
-	void *address = malloc(sizeof(void *));
+	char *fich = malloc (sizeof(char *));
+	void *init;
 	ssize_t count;
 	ssize_t total;
+	bool overWrite = false;
 	if(!strcmp(tr[0], "read")){
 		if(tr[1] == NULL || tr[2] == NULL){
 			printf("Parameters are needed\n");
 			return;
 		}else{
-			fich = tr[1];
-			strcpy(address, tr[2]);
+			sprintf(fich, "%s", tr[1]);
+			init = (void *) strtol(tr[2], NULL, 16);
 			if(tr[3] != NULL)
 				count = atoi(tr[3]);
 			else
 				count = -1;
 		}
-	total = LeerFichero(fich, address, count);
+	total = LeerFichero(fich, init, count);
 	printf("%zd bytes read of %s in %s\n", total, tr[1], tr[2]);
 		
 	}else if(!strcmp(tr[0], "write")){
-		if(tr[1] == NULL || tr[2] == NULL){
+		if((tr[1] == NULL || tr[2] == NULL || tr[3] == NULL)){
 			printf("Parameters are needed\n");
 			return;
-		}else{
-			
+		}else if(!strcmp(tr[1], "-o") && (tr[2] == NULL || tr[3] == NULL || tr[4] == NULL)){
+			printf("Parameters are needed\n");
+			return;
 		}
 		
+		if(!strcmp(tr[1], "-o")){
+			overWrite = true;
+			sprintf(fich, "%s", tr[2]);
+			init = (void *) strtol(tr[3], NULL, 16);
+			count = atoi(tr[4]);
+			total = WriteFichero(overWrite, fich, init, count);
+			printf("%zd bytes write of %s in %s\n", total, tr[2], tr[3]);
+		}else{
+			sprintf(fich, "%s", tr[1]);
+			init = (void *) strtol(tr[2], NULL, 16);
+			count = atoi(tr[3]);
+			total = WriteFichero(overWrite, fich, init, count);
+			printf("%zd bytes write of %s in %s\n", total, tr[1], tr[2]);
+		}		
 	}
-	
-	
-	
+	free(fich);
 }
 
 int trocearCadena (char *cadena, char *trozos[])
