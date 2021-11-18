@@ -834,7 +834,8 @@ void SharedDelkey (char *args[]) /*arg[0] points to a str containing the key*/
 	if ((id=shmget(clave,0,0666))==-1){
 		perror ("shmget: imposible to obtain shared memory");
 		return;
-	}
+	}else
+		printf("Key %s removed from the system\n", key);
 	if (shmctl(id,IPC_RMID,NULL)==-1)
 		perror ("shmctl: imposible to delete shared memory");
 }
