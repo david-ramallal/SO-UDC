@@ -883,7 +883,6 @@ void cmd_shared(char *tr[]){
 	size_t tam = 0;
 	void *p;
 	char * address;
-	//int id;
 	memItem freeItem;
 	tMemPos pos;
 	if (tr[0]==NULL || ((!strcmp(tr[0], "-free") || !strcmp(tr[0], "-create")) && tr[1] == NULL) || (!strcmp(tr[0], "-create") && tr[1] != NULL && tr[2] == NULL)){
@@ -1106,8 +1105,7 @@ void cmd_llenarmem(char *tr[]){
 		ch = tr[2][1];
     strtol(&ch, &byteChar, 10);
     printf("Filling %zd bytes of memory with byte %c(%d) from address %s\n", cont, *byteChar, (int)*byteChar, tr[0]);
-    memset(addr, (int)*byteChar, cont); 
-	free(byteChar);
+    memset(addr, (int)*byteChar, cont);
     return;
     }else if(((tr[2][0]) == '0') && ((tr[2][1]) == 'x')){
 		byte = hextoAscii(tr[2][2], tr[2][3]);
@@ -1118,7 +1116,6 @@ void cmd_llenarmem(char *tr[]){
   printf("Filling %zd bytes of memory with byte %c(%d) from address %s\n", cont, byte, byte, tr[0]);
   memset(addr, byte, cont);  
   
-  free(byteChar);
 }
 
 void recursiveFunct (int n)
@@ -1163,28 +1160,32 @@ ssize_t LeerFichero (char *fich, void *p, ssize_t n){
 	return (nleidos);
 }
 
-ssize_t WriteFichero (bool overWrite, char *fich, void *p, ssize_t n){
-	ssize_t nleidos,tam=n;
-	int df,ctr = 0;
-	struct stat s;
+void WriteFichero (bool overWrite, char *fich, void *p, ssize_t n){
+	int df;
+	//struct stat s;
 	
-	if (stat (fich,&s)==-1 || (df=open(fich,O_RDONLY))==-1){
-		ctr = -1;
-		df=open(fich, O_CREAT|O_WRONLY|O_TRUNC, S_IRWXU);
-	}
-	
-	if(overWrite || ctr == -1){
-		if ((nleidos=write(df,p, tam))==-1){
-			delete(fich);
-			WriteFichero(overWrite, fich, p, n);
-		}else
-		 printf("%zd bytes write of %s in %p\n", n, fich, (char*)p);
+	if(!overWrite){
+		if((df=open(fich, O_WRONLY | O_EXCL | O_CREAT, S_IRGRP | S_IRUSR | S_IWUSR | S_IROTH |  S_IWGRP)) == -1){
+			printf("Impossible to write the file: File exists\n");
+			return;
+		}
 	}else{
-		printf("Impossible to write the file: File exists\n");
+		if(open(fich, O_WRONLY | O_EXCL | O_CREAT, S_IRGRP | S_IRUSR | S_IWUSR | S_IROTH |  S_IWGRP) == -1){
+			if(overWrite)
+				fclose(fopen(fich, "w"));
+		}
+		if((df=open(fich, O_CREAT | O_WRONLY, S_IRGRP | S_IRUSR | S_IWUSR | S_IROTH |  S_IWGRP)) == -1){
+			printf("Impossible to write the file: File exists\n");
+			return;
+		}
 	}
-	close (df);
+	if(write(df,p, n)==-1)
+		printf("Impossible to write the file: File exists\n");
 	
-	return (nleidos);
+	 printf("%zd bytes write of %s in %p\n", n, fich, (char*)p);
+	
+	close (df);
+
 }
 
 void cmd_es(char *tr[]){
@@ -1222,12 +1223,12 @@ void cmd_es(char *tr[]){
 			fich = tr[2];
 			init = (void *) strtol(tr[3], NULL, 16);
 			count = atoi(tr[4]);
-			total = WriteFichero(overWrite, fich, init, count);
+			WriteFichero(overWrite, fich, init, count);
 		}else{
 			fich = tr[1];
 			init = (void *) strtol(tr[2], NULL, 16);
 			count = atoi(tr[3]);
-			total = WriteFichero(overWrite, fich, init, count);
+			WriteFichero(overWrite, fich, init, count);
 		}		
 	}
 }
