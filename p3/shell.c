@@ -26,6 +26,8 @@
 #include <sys/shm.h>
 #include <sys/wait.h>
 #include <ctype.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 
 #define MAXLINEA 1024
 #define LEERCOMPLETO ((ssize_t)-1)
@@ -1272,6 +1274,23 @@ void cmd_es(char *tr[]){
 }
 
 void cmd_priority(char *tr[]){
+	int which = PRIO_PROCESS;
+	id_t pid;
+	pid = getpid();
+	errno = 0;
+	
+	if(tr[0]==NULL)
+		printf("Priority of process %d is %d\n", pid, getpriority(which,pid));
+	else if((tr[0]!=NULL) && (tr[1]==NULL)){
+		if ((getpriority(which, atoi(tr[0]))) == -1 && errno) 
+			printf("It is not possible to obtain priority of process %d: %s\n", atoi(tr[0]), strerror(errno));
+		else
+			printf("Priority of process %d is %d\n", atoi(tr[0]), getpriority(which,atoi(tr[0])));
+	}
+	else if ((tr[0]!=NULL) && (tr[1]!=NULL)){
+		if (((setpriority(which, atoi(tr[0]), atoi(tr[1])))) == -1 && errno)
+			printf("It is not possible to change priority of process %d: %s\n", atoi(tr[0]), strerror(errno));
+	}		
 }
 
 void cmd_rederr(char *tr[]){
