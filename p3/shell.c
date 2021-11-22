@@ -25,9 +25,9 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/wait.h>
-#include <ctype.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <ctype.h>
 
 #define MAXLINEA 1024
 #define LEERCOMPLETO ((ssize_t)-1)
@@ -516,7 +516,7 @@ void cmd_infosis (char *tr[])
 void cmd_ayuda (char *tr[])
 {
     if (tr[0]==NULL)
-        printf("autores [-l|-n]\npid [-p]\ncarpeta [direct]\nfecha [-d|-h]\nhist [-c|-N]\ncomando N\ninfosis\nayuda [cmd]\nfin\nsalir\nbye\ncrear [-f ] name\nborrar name1 name2 ...\nborrarrec name1 name2 ...\nlistfich [-long] [-link] [-acc] name1 name2 name3 ...\nlistdir [-reca] [-recb] [-hid] [-long] [-link] [-acc] name1 name2 ...\nmalloc [-free] [tam]\nmmap [-free] fich [perm]\nshared [-free|-create|-delkey] cl [tam]\ndealloc [-malloc|-shared|-mmap] ...\nmemoria [-blocks] [-vars] [-funcs] [-all] [-pmap]\nvolcarmem addr [cont]\nllenarmem addr [cont] [byte]\nrecursiva n\ne-s read fich addr cont\ne-s write [-o] fich addr cont\n");
+        printf("autores [-l|-n]\npid [-p]\ncarpeta [direct]\nfecha [-d|-h]\nhist [-c|-N]\ncomando N\ninfosis\nayuda [cmd]\nfin\nsalir\nbye\ncrear [-f ] name\nborrar name1 name2 ...\nborrarrec name1 name2 ...\nlistfich [-long] [-link] [-acc] name1 name2 name3 ...\nlistdir [-reca] [-recb] [-hid] [-long] [-link] [-acc] name1 name2 ...\nmalloc [-free] [tam]\nmmap [-free] fich [perm]\nshared [-free|-create|-delkey] cl [tam]\ndealloc [-malloc|-shared|-mmap] ...\nmemoria [-blocks] [-vars] [-funcs] [-all] [-pmap]\nvolcarmem addr [cont]\nllenarmem addr [cont] [byte]\nrecursiva n\ne-s read fich addr cont\ne-s write [-o] fich addr cont\npriority [pid] [value]\nrederr [-reset] fich\nentorno [-environ]\nmostrarvar VAR1\ncambiarvar [-a|-e|-p] VAR VALUE\nuid -get|-set [-l] id\nfork\nejec prog arg1 arg2 ...\nejecpri prio prog arg1 arg2 ...\nfg prog arg1 arg2 ...\nfgpri prio prog arg1 arg2 ...\nback prog arg1 arg2 ...\nbackpri prio prog arg1 arg2 ...\nejecas login prog arg1 arg2 ...\nfgas login prog arg1 arg2 ...\nbgas login prog arg1 arg2 ...\nlistjobs\njob [-fg] id\nborrarjobs -term|-sig|-all|-clear\n");
     else{
         if (tr[0]!=NULL && !strcmp(tr[0], "autores"))
             printf("autores [-l|-n]\nPrints names and logins of authors\nauthors -l prints only logins\nauthors -n prints only names\n");
@@ -568,6 +568,44 @@ void cmd_ayuda (char *tr[])
 			printf("recursiva n\nCalls a recursive function passing the integer n as its parameter\n");
 		else if (tr[0]!=NULL && !strcmp(tr[0], "e-s"))
 			printf("e-s\ne-s read fich addr cont Reads cont bytes from file fich into memory address addr. If\ncont is not specified ALL of fich is read onto memory address addr\ne-s write [-o] fich addr cont Writes (using ONE write system call ) cont bytes from memory address addr into\nfile fich. If file fich does not exist it gets created; if it already exists it is\nnot overwritten unless “-o” (overwrite) is specified\n");
+		else if (tr[0]!=NULL && !strcmp(tr[0], "priority"))
+			printf("priority [pid] [value]\nWhile pid and value are specified, it changes the value of process pid to value\nIf value is not given, it shows the priority of process pid\nIf neither pid nor value are specified, the priority of the process executing the shell is shown\n");
+ 		else if (tr[0]!=NULL && !strcmp(tr[0], "rederr"))  
+			printf("rederr [-reset] fich\nrederr file Redirects the standard error of the shell to file fich\nrederr Shows where the standard error is currently going to\nrederr -reset Restores the standard error to what it was originally\n");
+   		else if (tr[0]!=NULL && !strcmp(tr[0], "entorno"))
+			printf("entorno [-environ]\nShows the environment of the shell process\nentorno Shows all the environment variables of the shell process.Access will be through the third argument of main\nentorno -environ Shows all the environment variables of the shell process. Access will be through the external variable environ\nentorno -addr Shows the value (as pointers) of environ and the third argument of main. Shows also the addresses at with they are stored\n");
+		else if (tr[0]!=NULL && !strcmp(tr[0], "mostrarvar"))
+			printf("mostrarvar VAR\nShows the value of environment variable VAR\nIf no var is specified, it shows all the environment variables of the shell process\n");
+		else if (tr[0]!=NULL && !strcmp(tr[0], "cambiarvar"))
+			printf("cambiarvar [-a|-e|-p] VAR VALUE\nChanges the value of the environment var VAR to value\n-a means access through main’s third argument\n-e means access through environ\n-p means access through the library function putenv\n");
+		else if (tr[0]!=NULL && !strcmp(tr[0], "uid"))
+			printf("uid -get|-set [-l] id\nuid -get ro simply uid Prints the real and effective user credentials of the process running the shell\nuid -set [-l] id Establishes the efective user id of the shell process. id represents the uid. f -l is given id represents the login. If no arguments are given to uid -set, this command behaves exactly as uid -get\n");
+		else if (tr[0]!=NULL && !strcmp(tr[0], "fork"))
+			printf("fork\nThe shell creates a child process with fork and waits for it to end\n");
+		else if (tr[0]!=NULL && !strcmp(tr[0], "ejec"))
+			printf("ejec prog arg1 arg2 ...\nExecutes, without creating a process, he program prog with its arguments\n");
+		else if (tr[0]!=NULL && !strcmp(tr[0], "ejecpri"))
+			printf("ejecpri prio prog arg1 arg2 ...\nDoes the same as ejec, but before executing prog it changes the priority of the proccess to prio\n");
+		else if (tr[0]!=NULL && !strcmp(tr[0], "fg"))
+			printf("fg prog arg1 arg2 ...\nThe shell creates a process that executes in foreground the program prog with its arguments\n");
+		else if (tr[0]!=NULL && !strcmp(tr[0], "fgpri"))   
+			printf("fgpri prio prog arg1 arg2 ...\nDoes the same as fg, but before executing prog it changes the priority of the proccess that executes prog to prio\n");
+		else if (tr[0]!=NULL && !strcmp(tr[0], "back"))
+			printf("back prog arg1 arg2 ...\nThe shell creates a process that executes in background the program prog with its arguments\n");
+		else if (tr[0]!=NULL && !strcmp(tr[0], "backpri"))   
+			printf("backpri prio prog arg1 arg2 ...\nDoes the same as back, but before executing prog it changes the priority of the proccess that executes prog to prio\n");
+ 		else if (tr[0]!=NULL && !strcmp(tr[0], "ejecas"))   
+			printf("ejecas login prog arg1 arg2 ...\nTries to execute as user login the program and arguments prog arg1 arg2 ...\n");
+ 		else if (tr[0]!=NULL && !strcmp(tr[0], "fgas"))
+			printf("fgas login prog arg1 arg2 ...\nCreates a process that tries to execute as user login the program and arguments prog arg1 arg2 ...\n");
+ 		else if (tr[0]!=NULL && !strcmp(tr[0], "bgas"))
+			printf("bgas login prog arg1 arg2 ...\nCreates a process that tries to execute in the backgroud and as user login the program and arguments prog arg1 arg2 ...\n");
+ 		else if (tr[0]!=NULL && !strcmp(tr[0], "listjobs"))
+			printf("listjobs\nShows the list of background processes of the shell\n");
+ 		else if (tr[0]!=NULL && !strcmp(tr[0], "job"))
+			printf("job [-fg] id\nShows information on process pid\nIf pid is not given or if pid is not a background process from the shell, this comand does exactly the same as the comand listjobs\nIf we supply the argument -fg, process with pid pid must be brought to the foreground\n");
+ 		else if (tr[0]!=NULL && !strcmp(tr[0], "borrarjobs"))
+			printf("borrarjobs -term|-sig|-all|-clear\nborrarjobs -term Removes from the list the processes that have exited normally\nborrarjobs -sig Removes from the list the processes that have been terminated by a signal\nborrarjobs -all Removes from the list all the processes that have finished (exited normally or by a signal)\nborrarjobs -clear Empties the list of background processes\n");
     }
 }
 
@@ -1292,7 +1330,6 @@ void cmd_priority(char *tr[]){
 			printf("It is not possible to change priority of process %d: %s\n", atoi(tr[0]), strerror(errno));
 	}		
 }
-
 void cmd_rederr(char *tr[]){
 
 }
