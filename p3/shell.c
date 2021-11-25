@@ -1331,6 +1331,7 @@ void cmd_priority(char *tr[]){
 	}		
 }
 void cmd_rederr(char *tr[]){
+	
 
 }
 
@@ -1350,6 +1351,14 @@ void cmd_uid(char *tr[]){
 }
 
 void cmd_fork(char *tr[]){
+	pid_t pidChild;
+	
+	if((pidChild = fork()) == -1){
+		printf("It is not possible to use fork: %s\n", strerror(errno));
+		return;
+	}else if(pidChild != 0)
+				printf("Executing process %d\n", pidChild);
+	waitpid(pidChild, NULL, 0);
 }
 
 void cmd_ejec(char *tr[]){
