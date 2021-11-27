@@ -1378,7 +1378,19 @@ void cmd_rederr(char *tr[]){
 }
 
 void cmd_entorno(char *tr[]){
+	extern char ** environ;
+	char * ent_name = "environ";
 	
+	if(tr[0]==NULL){
+		//MostrarEntorno( 
+	}else if(!strcmp(tr[0], "-environ")){
+		MostrarEntorno(environ, ent_name);
+	}else if(!strcmp(tr[0], "-addr")){
+		printf("environ: %p (stored in %p)\n", *environ, environ);				//		<-  	<-
+		printf("main arg3: %%p (stored in %%p)\n");								//		<-  	<-
+		
+	}
+		
 }
 
 void cmd_mostrarvar(char *tr[]){
