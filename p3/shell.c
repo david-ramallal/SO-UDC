@@ -1509,27 +1509,58 @@ void cmd_fork(char *tr[]){
 	waitpid(pidChild, NULL, 0);
 }
 
-void cmd_ejec(char *tr[]){
-
+void cmd_ejec(char *tr[]){										
+		if (execl(tr[0], tr[0],NULL)==-1)						//<---      <---     <---
+			perror ("Cannot execute");							//<---      <---     <---
+		exit(255); /*exec has failed for whateever reason*/		//<---      <---     <---
 }
 
 void cmd_ejecpri(char *tr[]){
-	
+	int which = PRIO_PROCESS;
+	setpriority(which, getpid(), atoi(tr[0]));
+	if (execl(tr[1], tr[1],NULL)==-1)							//<---      <---     <---
+			perror ("Cannot execute");							//<---      <---     <---
+		exit(255); /*exec has failed for whateever reason*/		//<---      <---     <---
 }
 
 void cmd_fg(char *tr[]){
+	int pid;													//<---      <---     <---
+	if ((pid=fork())==0){										//<---      <---     <---
+		if (execl(tr[0], tr[0],NULL)==-1)						//<---      <---     <---	
+			perror ("Cannot execute");							//<---      <---     <---
+		exit(255); /*exec has failed for whateever reason*/}	//<---      <---     <---
+	waitpid (pid,NULL,0);
 }
 
 void cmd_fgpri(char *tr[]){
+	int pid, which = PRIO_PROCESS;								//<---      <---     <---
+	if ((pid=fork())==0){										//<---      <---     <---
+		setpriority(which, pid, atoi(tr[0]));					//<---      <---     <---
+		if (execl(tr[1], tr[1],NULL)==-1)						//<---      <---     <---	
+			perror ("Cannot execute");							//<---      <---     <---
+		exit(255); /*exec has failed for whateever reason*/}	//<---      <---     <---
+	waitpid (pid,NULL,0);
 
 }
 
 void cmd_back(char *tr[]){
+	int pid;													//<---      <---     <---
+	if ((pid=fork())==0){										//<---      <---     <---
+		if (execl(tr[0],tr[0],NULL)==-1)						//<---      <---     <---
+			perror ("Cannot execute");							//<---      <---     <---	
+		exit(255); /*exec has failed for whatever reason*/		//<---      <---     <---
+	}
 	
 }
 
 void cmd_backpri(char *tr[]){
-	
+	int pid, which = PRIO_PROCESS;	
+	if ((pid=fork())==0){		
+		setpriority(which, pid, atoi(tr[0]));					//<---      <---     <---
+		if (execl(tr[1],tr[1],NULL)==-1)						//<---      <---     <---
+			perror ("Cannot execute");							//<---      <---     <---	
+		exit(255); /*exec has failed for whatever reason*/		//<---      <---     <---
+	}
 }
 
 void cmd_ejecas(char *tr[]){
