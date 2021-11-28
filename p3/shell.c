@@ -35,6 +35,7 @@
 
 TCMDLIST L;
 tMemList *memList;
+char *entorno_main[MAXVAR];
 
 struct CMD{
     char * name;
@@ -1379,18 +1380,17 @@ void cmd_rederr(char *tr[]){
 
 void cmd_entorno(char *tr[]){
 	extern char ** environ;
-	char * ent_name = "environ";
+	char * env_name = "environ";
+	char * main_name = "main arg3";
 	
-	if(tr[0]==NULL){
-		//MostrarEntorno( 
-	}else if(!strcmp(tr[0], "-environ")){
-		MostrarEntorno(environ, ent_name);
-	}else if(!strcmp(tr[0], "-addr")){
-		printf("environ: %p (stored in %p)\n", *environ, environ);				//		<-  	<-
-		printf("main arg3: %%p (stored in %%p)\n");								//		<-  	<-
-		
-	}
-		
+	if(tr[0]==NULL)
+		MostrarEntorno(entorno_main, main_name); 
+	else if(!strcmp(tr[0], "-environ"))
+		MostrarEntorno(environ, env_name);
+	else if(!strcmp(tr[0], "-addr")){
+		printf("environ: %p (stored in %p)\n", *environ, environ);										
+		printf("main arg3: %p (stored in %p)\n", *entorno_main, entorno_main);		
+	}		
 }
 
 void cmd_mostrarvar(char *tr[]){
@@ -1487,13 +1487,16 @@ void procesarEntrada (char *tr[])
     printf("%s command not found\n",tr[0]);
 }
 
-int main()
+int main(int argc, char *argv[], char *envp[])
 {
     char linea[MAXLINEA];
     char *tr[MAXLINEA/2];
     char aux[MAXLINEA];
     CreateCmdList(L);
     memList = malloc(sizeof(tMemList));
+    
+    for (int i = 0; envp[i] != NULL; i++)
+         entorno_main[i] = envp[i];
     
     createEmptyMemList(memList);
 
