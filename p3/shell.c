@@ -1394,7 +1394,19 @@ void cmd_entorno(char *tr[]){
 }
 
 void cmd_mostrarvar(char *tr[]){
+	extern char ** environ;
+	char * main_name = "main arg3";
+	int i;
+	
+	if(tr[0]==NULL)
+		MostrarEntorno(entorno_main, main_name); 
+	else if ((i = BuscarVariable(tr[0], entorno_main)) != -1) {
+		printf("With arg3 main %s (%p) @%p\n", entorno_main[i], entorno_main[i], &entorno_main[i]);
+		printf("With environ %s (%p) @%p\n", environ[i], environ[i], &environ[i]);
+		printf("With getenv %s (%p)\n", getenv(tr[0]), getenv(tr[0]));
+	}
 }
+
 
 void cmd_cambiarvar(char *tr[]){
 
