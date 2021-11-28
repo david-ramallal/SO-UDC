@@ -1388,8 +1388,8 @@ void cmd_entorno(char *tr[]){
 	else if(!strcmp(tr[0], "-environ"))
 		MostrarEntorno(environ, env_name);
 	else if(!strcmp(tr[0], "-addr")){
-		printf("environ: %p (stored in %p)\n", *environ, environ);										
-		printf("main arg3: %p (stored in %p)\n", *entorno_main, entorno_main);		
+		printf("environ: %p (stored in %p)\n", *environ, environ);								// <- <- <-		
+		printf("main arg3: %p (stored in %p)\n", *entorno_main, entorno_main);				// <- <- <-
 	}		
 }
 
@@ -1404,12 +1404,33 @@ void cmd_mostrarvar(char *tr[]){
 		printf("With arg3 main %s (%p) @%p\n", entorno_main[i], entorno_main[i], &entorno_main[i]);
 		printf("With environ %s (%p) @%p\n", environ[i], environ[i], &environ[i]);
 		printf("With getenv %s (%p)\n", getenv(tr[0]), getenv(tr[0]));
+	}else if ((i = BuscarVariable(tr[0], environ)) != -1) {
+		printf("With environ %s (%p) @%p\n", environ[i], environ[i], &environ[i]);
+		printf("With getenv %s (%p)\n", getenv(tr[0]), getenv(tr[0]));
 	}
 }
 
-
 void cmd_cambiarvar(char *tr[]){
-
+	extern char ** environ;
+	char *nameValue;
+	nameValue=(char *)malloc(strlen(tr[1])+strlen(tr[2])+2);
+	
+	if(tr[0]==NULL)
+		printf("Use: cambiarvar [-a|-e|-p] var value\n");
+	else if ((tr[1]!=NULL) && (tr[2]!=NULL)){
+		strcat(nameValue, tr[1]);
+		strcat(nameValue, "=");
+		strcat(nameValue, tr[2]);
+		if(!strcmp(tr[0], "-a")){
+			if (CambiarVariable(tr[1], tr[2], entorno_main) == -1)
+				printf("Impossible to change variable: %s\n", strerror(errno));
+		}else if(!strcmp(tr[0], "-e")){
+			if (CambiarVariable(tr[1], tr[2], environ) == -1)
+				printf("Impossible to change variable: %s\n", strerror(errno));
+		}else if(!strcmp(tr[0], "-p")){
+			putenv(nameValue);
+		}
+	}
 }
 
 void cmd_uid(char *tr[]){
