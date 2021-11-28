@@ -1373,8 +1373,27 @@ void cmd_priority(char *tr[]){
 			printf("It is not possible to change priority of process %d: %s\n", atoi(tr[0]), strerror(errno));
 	}		
 }
+
+//sen rematar
 void cmd_rederr(char *tr[]){
+	char *file = malloc(sizeof(char *));
+	int df;
 	
+	
+	if(tr[0]==NULL)
+		printf("sen rematar");
+	else if (!strcmp(tr[0], "-reset")){
+		
+	}else{
+		strcpy(file, tr[0]);
+		if((df=open(file, O_WRONLY | O_EXCL | O_CREAT, S_IRGRP | S_IRUSR | S_IWUSR | S_IROTH |  S_IWGRP)) == -1){
+			printf("Impossible to redirect: File exists\n");
+			return;
+		}
+		dup(df);
+	}
+
+
 
 }
 
@@ -1388,8 +1407,8 @@ void cmd_entorno(char *tr[]){
 	else if(!strcmp(tr[0], "-environ"))
 		MostrarEntorno(environ, env_name);
 	else if(!strcmp(tr[0], "-addr")){
-		printf("environ: %p (stored in %p)\n", *environ, environ);								// <- <- <-		
-		printf("main arg3: %p (stored in %p)\n", *entorno_main, entorno_main);				// <- <- <-
+		printf("environ: %p (stored in %p)\n", *environ, environ);		           //<--  <--   <--								
+		printf("main arg3: %p (stored in %p)\n", *entorno_main, entorno_main);	   //<--  <--   <--	
 	}		
 }
 
@@ -1433,8 +1452,50 @@ void cmd_cambiarvar(char *tr[]){
 	}
 }
 
+char * NombreUsuario (uid_t uid){
+	struct passwd *p;
+	if ((p=getpwuid(uid))==NULL)
+		return (" ??????");
+	return p->pw_name;
+}
+
+uid_t UidUsuario (char * nombre){
+	struct passwd *p;
+	if ((p=getpwnam (nombre))==NULL)
+		return (uid_t) -1;
+	return p->pw_uid;
+}
+
+void MostrarUidsProceso (void){
+	uid_t real=getuid(), efec=geteuid();
+	printf ("Real credential: %d, (%s)\n", real, NombreUsuario (real));
+	printf ("Effective credential: %d, (%s)\n", efec, NombreUsuario (efec));
+}
+
+void CambiarUidLogin (char * login){
+	uid_t uid;
+	if ((uid=UidUsuario(login))==(uid_t) -1){
+		printf("login not valid: %s\n", login);
+		return;
+	}
+	if (setuid(uid)==-1)
+		printf ("Impossible to change the credential: %s\n", strerror(errno));
+}
+
 void cmd_uid(char *tr[]){
 	
+	if(tr[0]==NULL || !strcmp(tr[0], "-get"))
+		MostrarUidsProceso();
+	else if(!strcmp(tr[0], "-set")){
+		if(tr[1]==NULL)
+			MostrarUidsProceso();
+		else if(!strcmp(tr[1], "-l"))
+			CambiarUidLogin(tr[2]);
+		else{
+			if (setuid(atoi(tr[1]))==-1)
+				printf ("Impossible to change the credential: %s\n", strerror(errno));
+		}
+	}
 }
 
 void cmd_fork(char *tr[]){
