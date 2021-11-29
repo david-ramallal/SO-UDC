@@ -1509,58 +1509,84 @@ void cmd_fork(char *tr[]){
 	waitpid(pidChild, NULL, 0);
 }
 
-void cmd_ejec(char *tr[]){										
-		if (execl(tr[0], tr[0],NULL)==-1)						//<---      <---     <---
-			perror ("Cannot execute");							//<---      <---     <---
-		exit(255); /*exec has failed for whateever reason*/		//<---      <---     <---
+//hai fallos cos argumentos
+void concatArg(char *tr[], char *dest, int i){
+	strcpy(dest, "");
+	while(tr[i]!=NULL){
+		strcat(dest, tr[i]);
+		strcat(dest, " ");
+		i++;
+	}
+}
+
+void cmd_ejec(char *tr[]){
+	char *args = malloc(sizeof(char *));	
+	concatArg(tr, args, 1);									
+	if (execl(tr[0], tr[0], args,(char *) NULL)==-1)
+		perror ("Cannot execute");
+	exit(255); /*exec has failed for whateever reason*/
+	free(args);
 }
 
 void cmd_ejecpri(char *tr[]){
-	int which = PRIO_PROCESS;
-	setpriority(which, getpid(), atoi(tr[0]));
-	if (execl(tr[1], tr[1],NULL)==-1)							//<---      <---     <---
-			perror ("Cannot execute");							//<---      <---     <---
-		exit(255); /*exec has failed for whateever reason*/		//<---      <---     <---
+	if(tr[0]!=NULL){
+		char *args = malloc(sizeof(char *));	
+		concatArg(tr, args, 2);
+		int which = PRIO_PROCESS;
+		setpriority(which, getpid(), atoi(tr[0]));
+		if (execl(tr[1], tr[1], args, (char *) NULL)==-1)
+			perror ("Cannot execute");
+		exit(255); /*exec has failed for whateever reason*/
+		free(args);
+	}
 }
 
 void cmd_fg(char *tr[]){
-	int pid;													//<---      <---     <---
-	if ((pid=fork())==0){										//<---      <---     <---
-		if (execl(tr[0], tr[0],NULL)==-1)						//<---      <---     <---	
-			perror ("Cannot execute");							//<---      <---     <---
-		exit(255); /*exec has failed for whateever reason*/}	//<---      <---     <---
+	char *args = malloc(sizeof(char *));	
+	concatArg(tr, args, 1);
+	int pid;
+	if ((pid=fork())==0){
+		if (execl(tr[0], tr[0], args, (char *) NULL)==-1)	
+			perror ("Cannot execute");
+		exit(255); /*exec has failed for whateever reason*/}
 	waitpid (pid,NULL,0);
+	//free(args);
 }
 
 void cmd_fgpri(char *tr[]){
-	int pid, which = PRIO_PROCESS;								//<---      <---     <---
-	if ((pid=fork())==0){										//<---      <---     <---
-		setpriority(which, pid, atoi(tr[0]));					//<---      <---     <---
-		if (execl(tr[1], tr[1],NULL)==-1)						//<---      <---     <---	
-			perror ("Cannot execute");							//<---      <---     <---
-		exit(255); /*exec has failed for whateever reason*/}	//<---      <---     <---
+	char *args = malloc(sizeof(char *));
+	concatArg(tr, args, 2);
+	int pid, which = PRIO_PROCESS;
+	if ((pid=fork())==0){			
+		setpriority(which, pid, atoi(tr[0]));
+		if (execl(tr[1], tr[1], args, (char *) NULL)==-1)					
+			perror ("Cannot execute");
+		exit(255); /*exec has failed for whateever reason*/}
 	waitpid (pid,NULL,0);
-
+	free(args);
 }
 
 void cmd_back(char *tr[]){
-	int pid;													//<---      <---     <---
-	if ((pid=fork())==0){										//<---      <---     <---
-		if (execl(tr[0],tr[0],NULL)==-1)						//<---      <---     <---
-			perror ("Cannot execute");							//<---      <---     <---	
-		exit(255); /*exec has failed for whatever reason*/		//<---      <---     <---
+	char *args = malloc(sizeof(char *));	
+	concatArg(tr, args, 1);
+	int pid;
+	if ((pid=fork())==0){
+		if (execl(tr[0],tr[0], args, (char *) NULL)==-1)	
+			exit(255); /*exec has failed for whatever reason*/
 	}
-	
+	free(args);
 }
 
 void cmd_backpri(char *tr[]){
-	int pid, which = PRIO_PROCESS;	
-	if ((pid=fork())==0){		
-		setpriority(which, pid, atoi(tr[0]));					//<---      <---     <---
-		if (execl(tr[1],tr[1],NULL)==-1)						//<---      <---     <---
-			perror ("Cannot execute");							//<---      <---     <---	
-		exit(255); /*exec has failed for whatever reason*/		//<---      <---     <---
+	char *args = malloc(sizeof(char *));
+	concatArg(tr, args, 2);
+	int pid, which = PRIO_PROCESS;
+	if ((pid=fork())==0){
+		setpriority(which, pid, atoi(tr[0]));
+		if (execl(tr[1],tr[1], args, (char *) NULL)==-1)
+			exit(255); /*exec has failed for whatever reason*/
 	}
+	free(args);
 }
 
 void cmd_ejecas(char *tr[]){
