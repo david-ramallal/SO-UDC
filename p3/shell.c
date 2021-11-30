@@ -36,6 +36,8 @@
 TCMDLIST L;
 tMemList *memList;
 char *entorno_main[MAXVAR];
+char *currentFile;
+//int currentDF;
 
 struct CMD{
     char * name;
@@ -1374,27 +1376,24 @@ void cmd_priority(char *tr[]){
 	}		
 }
 
-//sen rematar
 void cmd_rederr(char *tr[]){
 	char *file = malloc(sizeof(char *));
 	int df;
-	
-	
 	if(tr[0]==NULL)
-		fprintf(stderr, "standard error in original configuration fich\n");
+		printf("standard error in %s\n", currentFile);
 	else if (!strcmp(tr[0], "-reset")){
-		//dup2(df, STDOUT_FILENO);
+		dup2(STDOUT_FILENO, STDERR_FILENO);
+		sprintf(currentFile, "original configuration fich");
 	}else{
 		strcpy(file, tr[0]);
 		if((df=open(file, O_WRONLY | O_EXCL | O_CREAT, S_IRGRP | S_IRUSR | S_IWUSR | S_IROTH |  S_IWGRP)) == -1){
 			printf("Impossible to redirect: File exists\n");
 			return;
 		}
-		dup(df);
+		dup2(df, STDERR_FILENO);
+		strcpy(currentFile, file);
 	}
-
-
-
+	free(file);
 }
 
 void cmd_entorno(char *tr[]){
@@ -1550,6 +1549,7 @@ void cmd_fgpri(char *tr[]){
 	waitpid (pid,NULL,0);
 }
 
+//problemas
 void cmd_back(char *tr[]){
 	int pid;
 	if ((pid=fork())==0){
@@ -1625,6 +1625,9 @@ int main(int argc, char *argv[], char *envp[])
     char aux[MAXLINEA];
     CreateCmdList(L);
     memList = malloc(sizeof(tMemList));
+    currentFile = malloc(MAXLINEA*sizeof(char));
+    sprintf(currentFile, "original configuration fich");
+    //currentDF = STDOUT_FILENO;
     
     for (int i = 0; envp[i] != NULL; i++)
          entorno_main[i] = envp[i];
