@@ -1514,7 +1514,7 @@ void cmd_ejec(char *tr[]){
 			perror ("Cannot execute");
 			return;
 		}
-		exit(255); /*exec has failed for whateever reason*/
+		exit(255);
 	}
 }
 
@@ -1526,7 +1526,7 @@ void cmd_ejecpri(char *tr[]){
 			perror ("Cannot execute");
 			return;
 		}
-		exit(255); /*exec has failed for whateever reason*/
+		exit(255);
 	}
 }
 
@@ -1535,7 +1535,8 @@ void cmd_fg(char *tr[]){
 	if ((pid=fork())==0){
 		if (execvp(tr[0], tr)==-1)	
 			perror ("Cannot execute");
-		exit(255); /*exec has failed for whateever reason*/}
+		exit(255);
+	}
 	waitpid (pid,NULL,0);
 }
 
@@ -1545,17 +1546,17 @@ void cmd_fgpri(char *tr[]){
 		setpriority(which, pid, atoi(tr[0]));
 		if (execvp(tr[1], tr+1)==-1)					
 			perror ("Cannot execute");
-		exit(255); /*exec has failed for whateever reason*/}
+		exit(255);
+	}
 	waitpid (pid,NULL,0);
 }
 
-//problemas
 void cmd_back(char *tr[]){
 	int pid;
 	if ((pid=fork())==0){
 		if (execvp(tr[0], tr)==-1)
-			return;
-		exit(255); /*exec has failed for whatever reason*/
+			perror ("Cannot execute");
+		exit(255);
 	}
 }
 
@@ -1564,8 +1565,8 @@ void cmd_backpri(char *tr[]){
 	if ((pid=fork())==0){
 		setpriority(which, pid, atoi(tr[0]));
 		if (execvp(tr[1], tr+1)==-1)
-			return;
-		exit(255); /*exec has failed for whatever reason*/
+			perror ("Cannot execute");
+		exit(255);
 	}
 }
 
