@@ -1381,9 +1381,9 @@ void cmd_rederr(char *tr[]){
 	
 	
 	if(tr[0]==NULL)
-		printf("sen rematar");
+		fprintf(stderr, "standard error in original configuration fich\n");
 	else if (!strcmp(tr[0], "-reset")){
-		
+		//dup2(df, STDOUT_FILENO);
 	}else{
 		strcpy(file, tr[0]);
 		if((df=open(file, O_WRONLY | O_EXCL | O_CREAT, S_IRGRP | S_IRUSR | S_IWUSR | S_IROTH |  S_IWGRP)) == -1){
@@ -1509,84 +1509,64 @@ void cmd_fork(char *tr[]){
 	waitpid(pidChild, NULL, 0);
 }
 
-//hai fallos cos argumentos
-void concatArg(char *tr[], char *dest, int i){
-	strcpy(dest, "");
-	while(tr[i]!=NULL){
-		strcat(dest, tr[i]);
-		strcat(dest, " ");
-		i++;
+void cmd_ejec(char *tr[]){
+	if(tr[0]!=NULL){								
+		if (execvp(tr[0], tr)==-1){
+			perror ("Cannot execute");
+			return;
+		}
+		exit(255); /*exec has failed for whateever reason*/
 	}
 }
 
-void cmd_ejec(char *tr[]){
-	char *args = malloc(sizeof(char *));	
-	concatArg(tr, args, 1);									
-	if (execl(tr[0], tr[0], args,(char *) NULL)==-1)
-		perror ("Cannot execute");
-	exit(255); /*exec has failed for whateever reason*/
-	free(args);
-}
-
 void cmd_ejecpri(char *tr[]){
-	if(tr[0]!=NULL){
-		char *args = malloc(sizeof(char *));	
-		concatArg(tr, args, 2);
+	if(tr[0]!=NULL && tr[1]!=NULL){
 		int which = PRIO_PROCESS;
 		setpriority(which, getpid(), atoi(tr[0]));
-		if (execl(tr[1], tr[1], args, (char *) NULL)==-1)
+		if (execvp(tr[1], tr+1)==-1){
 			perror ("Cannot execute");
+			return;
+		}
 		exit(255); /*exec has failed for whateever reason*/
-		free(args);
 	}
 }
 
 void cmd_fg(char *tr[]){
-	char *args = malloc(sizeof(char *));	
-	concatArg(tr, args, 1);
 	int pid;
 	if ((pid=fork())==0){
-		if (execl(tr[0], tr[0], args, (char *) NULL)==-1)	
+		if (execvp(tr[0], tr)==-1)	
 			perror ("Cannot execute");
 		exit(255); /*exec has failed for whateever reason*/}
 	waitpid (pid,NULL,0);
-	//free(args);
 }
 
 void cmd_fgpri(char *tr[]){
-	char *args = malloc(sizeof(char *));
-	concatArg(tr, args, 2);
 	int pid, which = PRIO_PROCESS;
 	if ((pid=fork())==0){			
 		setpriority(which, pid, atoi(tr[0]));
-		if (execl(tr[1], tr[1], args, (char *) NULL)==-1)					
+		if (execvp(tr[1], tr+1)==-1)					
 			perror ("Cannot execute");
 		exit(255); /*exec has failed for whateever reason*/}
 	waitpid (pid,NULL,0);
-	free(args);
 }
 
 void cmd_back(char *tr[]){
-	char *args = malloc(sizeof(char *));	
-	concatArg(tr, args, 1);
 	int pid;
 	if ((pid=fork())==0){
-		if (execl(tr[0],tr[0], args, (char *) NULL)==-1)	
-			exit(255); /*exec has failed for whatever reason*/
+		if (execvp(tr[0], tr)==-1)
+			return;
+		exit(255); /*exec has failed for whatever reason*/
 	}
-	free(args);
 }
 
 void cmd_backpri(char *tr[]){
-	char *args = malloc(sizeof(char *));
-	concatArg(tr, args, 2);
 	int pid, which = PRIO_PROCESS;
 	if ((pid=fork())==0){
 		setpriority(which, pid, atoi(tr[0]));
-		if (execl(tr[1],tr[1], args, (char *) NULL)==-1)
-			exit(255); /*exec has failed for whatever reason*/
+		if (execvp(tr[1], tr+1)==-1)
+			return;
+		exit(255); /*exec has failed for whatever reason*/
 	}
-	free(args);
 }
 
 void cmd_ejecas(char *tr[]){
