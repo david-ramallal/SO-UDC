@@ -20,6 +20,7 @@
 #include <grp.h>
 #include "CmdList.h"
 #include "MemList.h"
+#include "JobList.h"
 #include <errno.h>
 #include <sys/mman.h>
 #include <sys/ipc.h>
@@ -1700,6 +1701,7 @@ void cmd_bgas(char *tr[]){
 			if (execvp(tr[1], tr+1)==-1)
 				perror ("Cannot execute");
 			exit(255);
+			
 		}
 	}
 }

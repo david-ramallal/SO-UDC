@@ -10,7 +10,7 @@ void createEmptyJobList(tJobList * l)
 
 bool createJobNode (tJobPos * p)
 {
-    *p = malloc(sizeof(struct tNode));
+    *p = malloc(sizeof(struct tJNode));
     return *p != NULL;
 }
 
@@ -28,12 +28,12 @@ bool isEmptyJobList(tJobList l)
     return (l==NULL);
 }
 
-tJobPos first(tJobList l)
+tJobPos jobFirst(tJobList l)
 {
     return l;
 }
 
-tJobPos last(tJobList l)
+tJobPos jobLast(tJobList l)
 {
     tJobPos p;
 
@@ -41,12 +41,12 @@ tJobPos last(tJobList l)
     return p;
 }
 
-tJobPos next(tJobPos p,tJobList l)
+tJobPos jobNext(tJobPos p,tJobList l)
 {
     return p->next;
 }
 
-tJobPos previous(tJobPos p,tJobList l)
+tJobPos jobPrevious(tJobPos p,tJobList l)
 {
     tJobPos q;
     if(p==l)
@@ -59,7 +59,7 @@ tJobPos previous(tJobPos p,tJobList l)
 
 }
 
-bool insertItem(jobItem d, tJobList *l)
+bool insertJobItem(jobItem d, tJobList *l)
 {
     tJobPos q, p;
 
@@ -83,7 +83,7 @@ bool insertItem(jobItem d, tJobList *l)
     }
 }
 
-void deleteAtPosition(tJobPos p, tJobList *l)
+void deleteAtJobPosition(tJobPos p, tJobList *l)
 {
     tJobPos  q;
     if (p == *l) //delete first element
@@ -105,12 +105,12 @@ void deleteAtPosition(tJobPos p, tJobList *l)
     free(p);
 }
 
-jobItem getItem(tJobPos p, tJobList l)
+jobItem getJobItem(tJobPos p, tJobList l)
 {
     return p->data;
 }
 
-void updateItem(jobItem d, tJobPos p, tJobList *l)
+void updateJobItem(jobItem d, tJobPos p, tJobList *l)
 {
     p->data = d;
 }

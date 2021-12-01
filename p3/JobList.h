@@ -18,8 +18,8 @@ typedef struct jobItem{
 	int retrn;
 }jobItem;
 
-typedef struct tNode * tJobPos;
-struct tNode
+typedef struct tJNode * tJobPos;
+struct tJNode
 {
     jobItem data;
     tJobPos next;
@@ -32,14 +32,14 @@ typedef tJobPos tJobList;
 
 void createEmptyJobList(tJobList * l);
 bool isEmptyJobList(tJobList l);
-tJobPos first(tJobList l);
-tJobPos last(tJobList l);
-tJobPos next(tJobPos p, tJobList l);
-tJobPos previous(tJobPos p, tJobList l);
-bool insertItem(jobItem d, tJobList *l);
-void deleteAtPosition(tJobPos p, tJobList *l);
-jobItem getItem(tJobPos p, tJobList l);
-void updateItem(jobItem d, tJobPos p, tJobList *l);
+tJobPos jobFirst(tJobList l);
+tJobPos jobLast(tJobList l);
+tJobPos jobNext(tJobPos p, tJobList l);
+tJobPos jobPrevious(tJobPos p, tJobList l);
+bool insertJobItem(jobItem d, tJobList *l);
+void deleteAtJobPosition(tJobPos p, tJobList *l);
+jobItem getJobItem(tJobPos p, tJobList l);
+void updateJobItem(jobItem d, tJobPos p, tJobList *l);
 tJobPos findItemPid(pid_t pid, tJobList l);
 tJobPos findItemState(char *state, tJobList l);
 
