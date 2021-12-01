@@ -28,6 +28,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <ctype.h>
+#include <signal.h>
 
 #define MAXLINEA 1024
 #define MAXVAR 1024
@@ -88,6 +89,101 @@ void cmd_job(char *tr[]);
 void cmd_borrarjobs(char *tr[]);
 int trocearCadena ( char *cadena, char *trozos[]);
 void procesarEntrada (char *tr[]);
+
+struct SEN{
+	char *nombre;
+	int senal;
+};
+
+static struct SEN sigstrnum[]={
+	{"HUP", SIGHUP},
+	{"INT", SIGINT},
+	{"QUIT", SIGQUIT},
+	{"ILL", SIGILL},
+	{"TRAP", SIGTRAP},
+	{"ABRT", SIGABRT},
+	{"IOT", SIGIOT},
+	{"BUS", SIGBUS},
+	{"FPE", SIGFPE},
+	{"KILL", SIGKILL},
+	{"USR1", SIGUSR1},
+	{"SEGV", SIGSEGV},
+	{"USR2", SIGUSR2},
+	{"PIPE", SIGPIPE},
+	{"ALRM", SIGALRM},
+	{"TERM", SIGTERM},
+	{"CHLD", SIGCHLD},
+	{"CONT", SIGCONT},
+	{"STOP", SIGSTOP},
+	{"TSTP", SIGTSTP},
+	{"TTIN", SIGTTIN},
+	{"TTOU", SIGTTOU},
+	{"URG", SIGURG},
+	{"XCPU", SIGXCPU},
+	{"XFSZ", SIGXFSZ},
+	{"VTALRM", SIGVTALRM},
+	{"PROF", SIGPROF},
+	{"WINCH", SIGWINCH},
+	{"IO", SIGIO},
+	{"SYS", SIGSYS},
+/*senhales que no hay en todas partes*/
+	#ifdef SIGPOLL
+		{"POLL", SIGPOLL},
+	#endif
+	#ifdef SIGPWR
+		{"PWR", SIGPWR},
+	#endif
+	#ifdef SIGEMT
+		{"EMT", SIGEMT},
+	#endif
+	#ifdef SIGINFO
+		{"INFO", SIGINFO},
+	#endif
+	#ifdef SIGSTKFLT
+		{"STKFLT", SIGSTKFLT},
+	#endif
+	#ifdef SIGCLD
+		{"CLD", SIGCLD},
+	#endif
+	#ifdef SIGLOST
+		{"LOST", SIGLOST},
+	#endif
+	#ifdef SIGCANCEL
+		{"CANCEL", SIGCANCEL},
+	#endif
+	#ifdef SIGTHAW
+		{"THAW", SIGTHAW},
+	#endif
+	#ifdef SIGFREEZE
+		{"FREEZE", SIGFREEZE},
+	#endif
+	#ifdef SIGLWP
+		{"LWP", SIGLWP},
+	#endif
+	#ifdef SIGWAITING
+		{"WAITING", SIGWAITING},
+	#endif
+	{NULL,-1}
+};
+/*fin array sigstrnum */
+
+int Senal(char * sen){
+/*devuel el numero de senial a partir del nombre*/
+	int i;
+	for (i=0; sigstrnum[i].nombre!=NULL; i++)
+		if (!strcmp(sen, sigstrnum[i].nombre))
+			return sigstrnum[i].senal;
+	return -1;
+}
+
+char *NombreSenal(int sen) /*devuelve el nombre senal a partir de la senal*/{
+/* para sitios donde no hay sig2str*/
+	int i;
+	for (i=0; sigstrnum[i].nombre!=NULL; i++)
+		if (sen==sigstrnum[i].senal)
+			return sigstrnum[i].nombre;
+	return ("SIGUNKNOWN");
+}
 
 struct CMD C[]={
         {"fin",cmd_fin},
@@ -1358,7 +1454,7 @@ int CambiarVariable(char * var, char * valor, char *e[])
 
 void cmd_priority(char *tr[]){
 	int which = PRIO_PROCESS;
-	id_t pid;
+	pid_t pid;
 	pid = getpid();
 	errno = 0;
 	
@@ -1471,14 +1567,17 @@ void MostrarUidsProceso (void){
 	printf ("Effective credential: %d, (%s)\n", efec, NombreUsuario (efec));
 }
 
-void CambiarUidLogin (char * login){
+int CambiarUidLogin (char * login){
 	uid_t uid;
 	if ((uid=UidUsuario(login))==(uid_t) -1){
 		printf("login not valid: %s\n", login);
-		return;
+		return -1;
 	}
-	if (setuid(uid)==-1)
+	if (setuid(uid)==-1){
 		printf ("Impossible to change the credential: %s\n", strerror(errno));
+		return -1;
+	}
+	return 0;
 }
 
 void cmd_uid(char *tr[]){
@@ -1571,15 +1670,38 @@ void cmd_backpri(char *tr[]){
 }
 
 void cmd_ejecas(char *tr[]){
-
+	if(tr[0]!=NULL && tr[1]!=NULL){
+		if(CambiarUidLogin(tr[0]) == 0){
+			if (execvp(tr[1], tr+1)==-1){
+				perror ("Cannot execute");
+				return;
+			}
+			exit(255);
+		}
+	}
 }
 
 void cmd_fgas(char *tr[]){
-	
+	int pid;
+	if ((pid=fork())==0){			
+		if(CambiarUidLogin(tr[0]) == 0){
+			if (execvp(tr[1], tr+1)==-1)					
+				perror ("Cannot execute");
+			exit(255);
+		}
+	}
+	waitpid (pid,NULL,0);
 }
 
 void cmd_bgas(char *tr[]){
-	
+	int pid;
+	if ((pid=fork())==0){
+		if(CambiarUidLogin(tr[0]) == 0){
+			if (execvp(tr[1], tr+1)==-1)
+				perror ("Cannot execute");
+			exit(255);
+		}
+	}
 }
 
 void cmd_listjobs(char *tr[]){
