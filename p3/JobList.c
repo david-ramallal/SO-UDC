@@ -14,7 +14,7 @@ bool createJobNode (tJobPos * p)
     return *p != NULL;
 }
 
-tJobPos findPosition (tJobList l, jobItem d)
+tJobPos findJobPosition (tJobList l, jobItem d)
 {
     tJobPos p;
     p=l;
@@ -75,7 +75,7 @@ bool insertJobItem(jobItem d, tJobList *l)
             q->next = *l;
             *l = q;
         }else {  //insertion at the middle/end of a non empty list
-            p = findPosition (*l, d);
+            p = findJobPosition (*l, d);
             q -> next = p -> next;
             p -> next = q;
         }

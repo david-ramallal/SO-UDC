@@ -13,9 +13,9 @@ typedef struct jobItem{
 	int priority;
 	char *user;
 	char *comm;
-	time_t time;
 	char *state;
-	int retrn;
+	time_t time;
+	int *retrn;
 }jobItem;
 
 typedef struct tJNode * tJobPos;

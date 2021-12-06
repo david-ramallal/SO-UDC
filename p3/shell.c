@@ -39,7 +39,7 @@ TCMDLIST L;
 tMemList *memList;
 char *entorno_main[MAXVAR];
 char *currentFile;
-//int currentDF;
+tJobList *jobLst;
 
 struct CMD{
     char * name;
@@ -1651,13 +1651,50 @@ void cmd_fgpri(char *tr[]){
 	waitpid (pid,NULL,0);
 }
 
+int returnState(pid_t itemPid, char *stat){
+	pid_t rtrnPid;
+	int state;
+	rtrnPid = waitpid(itemPid, &state, WNOHANG);
+	if (rtrnPid == -1){
+		strcpy(stat, "TERMINATED BY SIGNAL");
+		return 255;
+	}else if (rtrnPid == 0){
+		strcpy(stat, "RUNNING");
+		return 0;
+	}else if (rtrnPid == itemPid){
+		strcpy(stat, "TERMINATED NORMALLY");
+		return 0;
+	}
+	return -1;
+}
+
+void createJob(pid_t itemPid, char *tr[]){
+	jobItem newJob;
+	newJob.pid = itemPid;
+	newJob.priority = getpriority(PRIO_PROCESS, itemPid);
+	newJob.user = malloc(sizeof(char *));
+	strcpy(newJob.user, NombreUsuario(getuid()));
+	newJob.comm = malloc(sizeof(char *));
+	strcpy(newJob.comm, *tr);						//<---     <---   <---    <---
+	newJob.state = malloc(sizeof(char *));
+	strcpy(newJob.state, "NULL");
+	newJob.time = time(NULL);
+	newJob.retrn = malloc(sizeof(int));
+	*newJob.retrn = -1;
+	insertJobItem(newJob, jobLst);
+}
+
 void cmd_back(char *tr[]){
 	int pid;
 	if ((pid=fork())==0){
 		if (execvp(tr[0], tr)==-1)
 			perror ("Cannot execute");
 		exit(255);
+		createJob(pid, tr);
+		return;
 	}
+	createJob(pid, tr);
+	
 }
 
 void cmd_backpri(char *tr[]){
@@ -1667,7 +1704,10 @@ void cmd_backpri(char *tr[]){
 		if (execvp(tr[1], tr+1)==-1)
 			perror ("Cannot execute");
 		exit(255);
+		createJob(pid, tr);
+		return;
 	}
+	createJob(pid, tr);
 }
 
 void cmd_ejecas(char *tr[]){
@@ -1701,20 +1741,91 @@ void cmd_bgas(char *tr[]){
 			if (execvp(tr[1], tr+1)==-1)
 				perror ("Cannot execute");
 			exit(255);
-			
+			createJob(pid, tr);
+			return;
+		}	
+	}
+	createJob(pid, tr);
+}
+
+void lstJobs(){
+	tJobPos p;
+	for( p=jobFirst(*jobLst); p!=NULL; p = jobNext(p, *jobLst) )
+	{
+		jobItem prntItem = getJobItem(p, *jobLst);
+		if(!strcmp(prntItem.state, "NULL") || strcmp(prntItem.state, "TERMINATED NORMALLY")){
+			*prntItem.retrn = returnState(prntItem.pid, prntItem.state);
 		}
+		struct tm tm = *localtime(&prntItem.time);
+		printf(" %d %s p=%d %04d/%02d/%02d %02d:%02d:%02d %s ", prntItem.pid, prntItem.user, prntItem.priority, (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, prntItem.state);
+		
+	
+		
+	//falta o de stopped
+	//falta conseguir que imprima os argumentos do executable
+	
+	//faltan cousas por facer!!!
+	printf("(%03d) ", *prntItem.retrn); 
+		
+	printf("%s\n", prntItem.comm);
 	}
 }
 
 void cmd_listjobs(char *tr[]){
-
+	lstJobs();
 }
 
 void cmd_job(char *tr[]){
+	if(tr[0] == NULL)
+		lstJobs();
+	else if(!strcmp(tr[0], "-fg")){
+		
+		
+	}else{
+		tJobPos p = findItemPid(atoi(tr[0]), *jobLst);
+		if(p!=NULL){
+			jobItem prntItem = getJobItem(p, *jobLst);
+			if(!strcmp(prntItem.state, "NULL") || strcmp(prntItem.state, "TERMINATED NORMALLY")){
+				*prntItem.retrn = returnState(prntItem.pid, prntItem.state);
+			}
+			struct tm tm = *localtime(&prntItem.time);
+			printf(" %d %s p=%d %04d/%02d/%02d %02d:%02d:%02d %s (%03d) %s\n", prntItem.pid, prntItem.user, prntItem.priority, (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, prntItem.state, *prntItem.retrn, prntItem.comm);
+		}else
+			lstJobs();
+	}
 	
 }
 
 void cmd_borrarjobs(char *tr[]){
+	if(isEmptyJobList(*jobLst))
+		return;
+		
+	tJobPos p;
+	jobItem jbItm;
+	
+	if(!strcmp(tr[0], "-term")){
+		for(p=jobFirst(*jobLst); p!=NULL; p=jobNext(p, *jobLst)){
+			jbItm = getJobItem(p, *jobLst);
+			if(!strcmp(jbItm.state, "TERMINATED NORMALLY"))
+				deleteAtJobPosition(p, jobLst);
+		}	
+	}else if(!strcmp(tr[0], "-sig")){
+		for(p=jobFirst(*jobLst); p!=NULL; p=jobNext(p, *jobLst)){
+			jbItm = getJobItem(p, *jobLst);
+			if(!strcmp(jbItm.state, "TERMINATED BY SIGNAL"))
+				deleteAtJobPosition(p, jobLst);
+		}
+	}else if(!strcmp(tr[0], "-all")){
+		for(p=jobFirst(*jobLst); p!=NULL; p=jobNext(p, *jobLst)){
+			jbItm = getJobItem(p, *jobLst);
+			if(!strcmp(jbItm.state, "TERMINATED BY SIGNAL")||!strcmp(jbItm.state, "TERMINATED NORMALLY"))
+				deleteAtJobPosition(p, jobLst);
+		}
+	}else if(!strcmp(tr[0], "-clear")){
+		
+		for(p=jobFirst(*jobLst); p!=NULL; p=jobNext(p, *jobLst))
+			deleteAtJobPosition(p, jobLst);
+	}
 	
 }
 
@@ -1750,14 +1861,15 @@ int main(int argc, char *argv[], char *envp[])
     char aux[MAXLINEA];
     CreateCmdList(L);
     memList = malloc(sizeof(tMemList));
+    jobLst = malloc(sizeof(tJobList));
     currentFile = malloc(MAXLINEA*sizeof(char));
     sprintf(currentFile, "original configuration fich");
-    //currentDF = STDOUT_FILENO;
     
     for (int i = 0; envp[i] != NULL; i++)
          entorno_main[i] = envp[i];
     
     createEmptyMemList(memList);
+    createEmptyJobList(jobLst);
 
     while (1){
         printf("*) ");
