@@ -1526,28 +1526,28 @@ void cmd_mostrarvar(char *tr[]){
 }
 
 void cmd_cambiarvar(char *tr[]){
-	extern char ** environ;
-	char *nameValue;
-	nameValue=(char *)malloc(strlen(tr[1])+strlen(tr[2])+2);
-	
-	if(tr[0]==NULL)
-		printf("Use: cambiarvar [-a|-e|-p] var value\n");
-	else if ((tr[1]!=NULL) && (tr[2]!=NULL)){
-		strcat(nameValue, tr[1]);
-		strcat(nameValue, "=");
-		strcat(nameValue, tr[2]);
-		if(!strcmp(tr[0], "-a")){
-			if (CambiarVariable(tr[1], tr[2], entorno_main) == -1)
-				printf("Impossible to change variable: %s\n", strerror(errno));
-		}else if(!strcmp(tr[0], "-e")){
-			if (CambiarVariable(tr[1], tr[2], environ) == -1)
-				printf("Impossible to change variable: %s\n", strerror(errno));
-		}else if(!strcmp(tr[0], "-p")){
-			putenv(nameValue);
-		}
-	}
+  if(tr[0]==NULL || (strcmp(tr[0], "-a") && strcmp(tr[0], "-e") && strcmp(tr[0], "-p")) || tr[1]==NULL || tr[2]==NULL){
+    printf("Use: cambiarvar [-a|-e|-p] var value\n");
+    return;
+  }
+  
+  extern char ** environ;
+  char *nameValue;
+  nameValue=(char *)malloc(strlen(tr[1])+strlen(tr[2])+2);
+  
+  strcat(nameValue, tr[1]);
+  strcat(nameValue, "=");
+  strcat(nameValue, tr[2]);
+  if(!strcmp(tr[0], "-a")){
+    if (CambiarVariable(tr[1], tr[2], entorno_main) == -1)
+      printf("Impossible to change variable: %s\n", strerror(errno));
+  }else if(!strcmp(tr[0], "-e")){
+    if (CambiarVariable(tr[1], tr[2], environ) == -1)
+      printf("Impossible to change variable: %s\n", strerror(errno));
+  }else if(!strcmp(tr[0], "-p")){
+    putenv(nameValue);
+  }
 }
-
 char * NombreUsuario (uid_t uid){
 	struct passwd *p;
 	if ((p=getpwuid(uid))==NULL)
