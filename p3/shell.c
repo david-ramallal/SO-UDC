@@ -1809,7 +1809,6 @@ void cmd_job(char *tr[]){
 	if(tr[0] == NULL)
 		lstJobs();
 	else if(!strcmp(tr[0], "-fg")){
-		
 		//está sin facer
 	}else{
 		tJobPos p = findItemPid(atoi(tr[0]), *jobLst);
