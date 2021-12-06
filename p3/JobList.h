@@ -12,17 +12,18 @@ typedef struct jobItem{
 	pid_t pid;
 	int priority;
 	char *user;
-	char *comm;
 	char *state;
 	time_t time;
 	int *retrn;
+	char *comm;
 }jobItem;
 
 typedef struct tJNode * tJobPos;
 struct tJNode
 {
+	tJobPos next;
     jobItem data;
-    tJobPos next;
+    
 };
 
 typedef tJobPos tJobList;

@@ -1503,8 +1503,8 @@ void cmd_entorno(char *tr[]){
 	else if(!strcmp(tr[0], "-environ"))
 		MostrarEntorno(environ, env_name);
 	else if(!strcmp(tr[0], "-addr")){
-		printf("environ: %p (stored in %p)\n", *environ, environ);		           //<--  <--   <--								
-		printf("main arg3: %p (stored in %p)\n", *entorno_main, entorno_main);	   //<--  <--   <--	
+		printf("environ: %p (stored in %p)\n", *environ, environ);							
+		printf("main arg3: %p (stored in %p)\n", *entorno_main, entorno_main);	
 	}		
 }
 
@@ -1690,7 +1690,7 @@ void createJob(pid_t itemPid, char *tr[], int i){
 	newJob.user = malloc(sizeof(char *));
 	strcpy(newJob.user, NombreUsuario(getuid()));
 	newJob.comm = malloc(sizeof(char *));
-	concatComm(tr, newJob.comm, i);								//<---     <---   <---    <---
+	concatComm(tr, newJob.comm, i);
 	newJob.state = malloc(sizeof(char *));
 	strcpy(newJob.state, "NULL");
 	newJob.time = time(NULL);
