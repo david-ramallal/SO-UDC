@@ -1651,63 +1651,90 @@ void cmd_fgpri(char *tr[]){
 	waitpid (pid,NULL,0);
 }
 
+
+void concatComm(char *tr[], char *comm, int i){
+	strcpy(comm, "");
+	
+	while(tr[i]!=NULL){
+		strcat(comm, tr[i]);
+		strcat(comm, " ");
+		i++;
+	}
+	
+}
+
 int returnState(pid_t itemPid, char *stat){
-	pid_t rtrnPid;
 	int state;
-	rtrnPid = waitpid(itemPid, &state, WNOHANG);
-	if (rtrnPid == -1){
-		strcpy(stat, "TERMINATED BY SIGNAL");
-		return 255;
-	}else if (rtrnPid == 0){
+	waitpid(itemPid, &state, WUNTRACED | WCONTINUED);
+	
+	if(WIFCONTINUED(state)){
 		strcpy(stat, "RUNNING");
 		return 0;
-	}else if (rtrnPid == itemPid){
+	}else if(WIFEXITED(state)){
 		strcpy(stat, "TERMINATED NORMALLY");
-		return 0;
+		return WEXITSTATUS(state);
+	}else if(WIFSTOPPED(state)){
+		strcpy(stat, "STOPPED");
+		return WSTOPSIG(state);
+	}else if(WIFSIGNALED(state)){
+		strcpy(stat, "TERMINATED BY SIGNAL");
+		return WTERMSIG(state);
 	}
 	return -1;
 }
 
-void createJob(pid_t itemPid, char *tr[]){
+void createJob(pid_t itemPid, char *tr[], int i){
 	jobItem newJob;
 	newJob.pid = itemPid;
 	newJob.priority = getpriority(PRIO_PROCESS, itemPid);
 	newJob.user = malloc(sizeof(char *));
 	strcpy(newJob.user, NombreUsuario(getuid()));
 	newJob.comm = malloc(sizeof(char *));
-	strcpy(newJob.comm, *tr);						//<---     <---   <---    <---
+	concatComm(tr, newJob.comm, i);								//<---     <---   <---    <---
 	newJob.state = malloc(sizeof(char *));
 	strcpy(newJob.state, "NULL");
 	newJob.time = time(NULL);
 	newJob.retrn = malloc(sizeof(int));
-	*newJob.retrn = -1;
+	*newJob.retrn = 0;
 	insertJobItem(newJob, jobLst);
 }
 
+void updateJob(tJobPos updateJobPos, pid_t itemPid){
+	jobItem updatedJob = getJobItem(updateJobPos, *jobLst);
+	updatedJob.priority = getpriority(PRIO_PROCESS, itemPid);
+	strcpy(updatedJob.user, NombreUsuario(getuid()));
+	*updatedJob.retrn = returnState(itemPid, updatedJob.state);
+	updateJobItem(updatedJob, updateJobPos, jobLst);
+}
+
 void cmd_back(char *tr[]){
+	if(tr[0]==NULL){
+		printf("Introduce the process to execute\n");
+		return;
+	}
 	int pid;
 	if ((pid=fork())==0){
 		if (execvp(tr[0], tr)==-1)
-			perror ("Cannot execute");
-		exit(255);
-		createJob(pid, tr);
-		return;
+				perror ("Cannot execute");	
+			exit(255);
 	}
-	createJob(pid, tr);
-	
+	createJob(pid, tr, 0);
 }
 
 void cmd_backpri(char *tr[]){
+	if(tr[0]==NULL || tr[1]==NULL){
+		printf("Introduce the process to execute\n");
+		return;
+	}
 	int pid, which = PRIO_PROCESS;
 	if ((pid=fork())==0){
 		setpriority(which, pid, atoi(tr[0]));
 		if (execvp(tr[1], tr+1)==-1)
 			perror ("Cannot execute");
 		exit(255);
-		createJob(pid, tr);
-		return;
+		
 	}
-	createJob(pid, tr);
+	createJob(pid, tr, 1);
 }
 
 void cmd_ejecas(char *tr[]){
@@ -1735,39 +1762,42 @@ void cmd_fgas(char *tr[]){
 }
 
 void cmd_bgas(char *tr[]){
+	if(tr[0]==NULL || tr[1]==NULL){
+		printf("Introduce the process to execute\n");
+		return;
+	}
 	int pid;
 	if ((pid=fork())==0){
 		if(CambiarUidLogin(tr[0]) == 0){
 			if (execvp(tr[1], tr+1)==-1)
 				perror ("Cannot execute");
 			exit(255);
-			createJob(pid, tr);
-			return;
 		}	
 	}
-	createJob(pid, tr);
+	createJob(pid, tr, 1);
 }
 
 void lstJobs(){
+	if(isEmptyJobList(*jobLst))
+		return;
 	tJobPos p;
 	for( p=jobFirst(*jobLst); p!=NULL; p = jobNext(p, *jobLst) )
 	{
 		jobItem prntItem = getJobItem(p, *jobLst);
-		if(!strcmp(prntItem.state, "NULL") || strcmp(prntItem.state, "TERMINATED NORMALLY")){
-			*prntItem.retrn = returnState(prntItem.pid, prntItem.state);
+		if(strcmp(prntItem.state, "TERMINATED NORMALLY")){
+			updateJob(p, prntItem.pid);
 		}
 		struct tm tm = *localtime(&prntItem.time);
 		printf(" %d %s p=%d %04d/%02d/%02d %02d:%02d:%02d %s ", prntItem.pid, prntItem.user, prntItem.priority, (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, prntItem.state);
 		
-	
+		if(!strcmp(prntItem.state, "TERMINATED BY SIGNAL"))
+			printf("(%s) ", NombreSenal(*prntItem.retrn));
+		else
+			printf("(%03d) ", *prntItem.retrn);
 		
-	//falta o de stopped
-	//falta conseguir que imprima os argumentos do executable
+		printf("%s\n", prntItem.comm);
 	
 	//faltan cousas por facer!!!
-	printf("(%03d) ", *prntItem.retrn); 
-		
-	printf("%s\n", prntItem.comm);
 	}
 }
 
@@ -1780,7 +1810,7 @@ void cmd_job(char *tr[]){
 		lstJobs();
 	else if(!strcmp(tr[0], "-fg")){
 		
-		
+		//está sin facer
 	}else{
 		tJobPos p = findItemPid(atoi(tr[0]), *jobLst);
 		if(p!=NULL){
@@ -1797,36 +1827,46 @@ void cmd_job(char *tr[]){
 }
 
 void cmd_borrarjobs(char *tr[]){
-	if(isEmptyJobList(*jobLst))
-		return;
-		
-	tJobPos p;
+	if(tr[0]==NULL || isEmptyJobList(*jobLst))
+		return;	
+	tJobPos p, next;
 	jobItem jbItm;
 	
 	if(!strcmp(tr[0], "-term")){
-		for(p=jobFirst(*jobLst); p!=NULL; p=jobNext(p, *jobLst)){
+		p=jobFirst(*jobLst);
+		while(p!=NULL){
+			next = jobNext(p, *jobLst);
 			jbItm = getJobItem(p, *jobLst);
 			if(!strcmp(jbItm.state, "TERMINATED NORMALLY"))
 				deleteAtJobPosition(p, jobLst);
+			p = next;
 		}	
 	}else if(!strcmp(tr[0], "-sig")){
-		for(p=jobFirst(*jobLst); p!=NULL; p=jobNext(p, *jobLst)){
+		p=jobFirst(*jobLst);
+		while(p!=NULL){
+			next = jobNext(p, *jobLst);
 			jbItm = getJobItem(p, *jobLst);
 			if(!strcmp(jbItm.state, "TERMINATED BY SIGNAL"))
 				deleteAtJobPosition(p, jobLst);
+			p = next;
 		}
 	}else if(!strcmp(tr[0], "-all")){
-		for(p=jobFirst(*jobLst); p!=NULL; p=jobNext(p, *jobLst)){
+		p=jobFirst(*jobLst);
+		while(p!=NULL){
+			next = jobNext(p, *jobLst);
 			jbItm = getJobItem(p, *jobLst);
 			if(!strcmp(jbItm.state, "TERMINATED BY SIGNAL")||!strcmp(jbItm.state, "TERMINATED NORMALLY"))
 				deleteAtJobPosition(p, jobLst);
+			p = next;
 		}
 	}else if(!strcmp(tr[0], "-clear")){
-		
-		for(p=jobFirst(*jobLst); p!=NULL; p=jobNext(p, *jobLst))
+		p=jobFirst(*jobLst);
+		while(p!=NULL){
+			next = jobNext(p, *jobLst);
 			deleteAtJobPosition(p, jobLst);
+			p = next;
+		}	
 	}
-	
 }
 
 int trocearCadena (char *cadena, char *trozos[])
