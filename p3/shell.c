@@ -1838,8 +1838,7 @@ void cmd_job(char *tr[]){
 		char *stat = malloc(sizeof(char*));
 		int state, rtn;
 		
-		waitpid(pidJob, NULL, WUNTRACED);
-		waitpid(pidJob, &state, WNOHANG | WUNTRACED | WCONTINUED);
+		waitpid(pidJob, &state, 0);
 		rtn = returnState(state, stat);
 		
 		if(!strcmp(stat, "TERMINATED NORMALLY"))
