@@ -1810,6 +1810,49 @@ void cmd_job(char *tr[]){
 	if(tr[0] == NULL)
 		lstJobs();
 	else if(!strcmp(tr[0], "-fg")){
+		if(tr[1]==NULL){
+			lstJobs();
+			return;
+		}
+		pid_t pidJob = atoi(tr[1]);
+		
+		jobItem fgItem;
+		tJobPos fgItemPos;
+		fgItemPos = findItemPid(pidJob, *jobLst);
+		
+		if(fgItemPos == NULL){
+			lstJobs();
+			return;
+		}
+		updateJob(fgItemPos, pidJob);
+		
+		fgItem = getJobItem(fgItemPos, *jobLst);
+		
+		
+		if(!strcmp(fgItem.state, "TERMINATED NORMALLY") || !strcmp(fgItem.state, "TERMINATED BY SIGNAL")){
+			printf("Process %d pid finished\n", pidJob);
+			return;
+		}
+		
+		
+		if(!strcmp(fgItem.state, "STOPPED")){
+			printf("Process %d pid stopped\n", pidJob);
+			return;
+		}
+		waitpid(pidJob, NULL, WUNTRACED);
+		updateJob(fgItemPos, pidJob);
+		fgItem = getJobItem(fgItemPos, *jobLst);
+		printf("%s", fgItem.state);
+		
+		if(!strcmp(fgItem.state, "TERMINATED NORMALLY"))
+			printf("Process %d terminated normally. Return value %d\n", pidJob, *fgItem.retrn);
+		if(!strcmp(fgItem.state, "TERMINATED BY SIGNAL"))
+			printf("Process %d terminated by signal. Return value %s\n", pidJob, NombreSenal(*fgItem.retrn));
+				
+		deleteAtJobPosition(fgItemPos, jobLst);
+		
+		
+		
 		//está sin facer
 	}else{
 		tJobPos p = findItemPid(atoi(tr[0]), *jobLst);
@@ -1891,7 +1934,13 @@ void procesarEntrada (char *tr[])
             (*C[i].func)(tr+1);
             return;
         }
-    printf("%s command not found\n",tr[0]);
+     for(i=0; tr[i]!=NULL; i++);
+     if(!strcmp(tr[i-1], "&")){
+		tr[i-1] = NULL;
+		cmd_back(tr);
+		return;
+	}
+	 cmd_fg(tr);
 }
 
 int main(int argc, char *argv[], char *envp[])
