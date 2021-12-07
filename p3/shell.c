@@ -1434,7 +1434,6 @@ int BuscarVariable (char * var, char *e[])
 		else
 			pos++;
 	errno=ENOENT;
-	/*no hay tal variable*/
 	return(-1);
 }
 
@@ -1815,7 +1814,6 @@ void cmd_job(char *tr[]){
 			return;
 		}
 		pid_t pidJob = atoi(tr[1]);
-		
 		jobItem fgItem;
 		tJobPos fgItemPos;
 		fgItemPos = findItemPid(pidJob, *jobLst);
@@ -1833,27 +1831,23 @@ void cmd_job(char *tr[]){
 			printf("Process %d pid finished\n", pidJob);
 			return;
 		}
-		
-		
 		if(!strcmp(fgItem.state, "STOPPED")){
 			printf("Process %d pid stopped\n", pidJob);
 			return;
 		}
-		waitpid(pidJob, NULL, WUNTRACED);
-		updateJob(fgItemPos, pidJob);
-		fgItem = getJobItem(fgItemPos, *jobLst);
-		printf("%s", fgItem.state);
+		char *stat = malloc(sizeof(char*));
+		int state, rtn;
 		
-		if(!strcmp(fgItem.state, "TERMINATED NORMALLY"))
-			printf("Process %d terminated normally. Return value %d\n", pidJob, *fgItem.retrn);
-		if(!strcmp(fgItem.state, "TERMINATED BY SIGNAL"))
-			printf("Process %d terminated by signal. Return value %s\n", pidJob, NombreSenal(*fgItem.retrn));
+		waitpid(pidJob, NULL, WUNTRACED);
+		waitpid(pidJob, &state, WNOHANG | WUNTRACED | WCONTINUED);
+		rtn = returnState(state, stat);
+		
+		if(!strcmp(stat, "TERMINATED NORMALLY"))
+			printf("Process %d terminated normally. Return value %d\n", pidJob, rtn);
+		if(!strcmp(stat, "TERMINATED BY SIGNAL"))
+			printf("Process %d terminated by signal. Return value %s\n", pidJob, NombreSenal(rtn));
 				
 		deleteAtJobPosition(fgItemPos, jobLst);
-		
-		
-		
-		//está sin facer
 	}else{
 		tJobPos p = findItemPid(atoi(tr[0]), *jobLst);
 		if(p!=NULL){
