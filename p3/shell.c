@@ -1663,14 +1663,8 @@ void concatComm(char *tr[], char *comm, int i){
 	
 }
 
-int returnState(pid_t itemPid, char *stat){
-	int state;
-	waitpid(itemPid, &state, WUNTRACED | WCONTINUED);
-	
-	if(WIFCONTINUED(state)){
-		strcpy(stat, "RUNNING");
-		return 0;
-	}else if(WIFEXITED(state)){
+int returnState(int state, char *stat){
+	if(WIFEXITED(state)){
 		strcpy(stat, "TERMINATED NORMALLY");
 		return WEXITSTATUS(state);
 	}else if(WIFSTOPPED(state)){
@@ -1679,9 +1673,14 @@ int returnState(pid_t itemPid, char *stat){
 	}else if(WIFSIGNALED(state)){
 		strcpy(stat, "TERMINATED BY SIGNAL");
 		return WTERMSIG(state);
+	}else if(WIFCONTINUED(state)){
+		strcpy(stat, "RUNNING");
+		return 0;
 	}
 	return -1;
 }
+
+
 
 void createJob(pid_t itemPid, char *tr[], int i){
 	jobItem newJob;
@@ -1692,7 +1691,7 @@ void createJob(pid_t itemPid, char *tr[], int i){
 	newJob.comm = malloc(sizeof(char *));
 	concatComm(tr, newJob.comm, i);
 	newJob.state = malloc(sizeof(char *));
-	strcpy(newJob.state, "NULL");
+	strcpy(newJob.state, "RUNNING");
 	newJob.time = time(NULL);
 	newJob.retrn = malloc(sizeof(int));
 	*newJob.retrn = 0;
@@ -1700,11 +1699,15 @@ void createJob(pid_t itemPid, char *tr[], int i){
 }
 
 void updateJob(tJobPos updateJobPos, pid_t itemPid){
+	int state, w;
 	jobItem updatedJob = getJobItem(updateJobPos, *jobLst);
-	updatedJob.priority = getpriority(PRIO_PROCESS, itemPid);
-	strcpy(updatedJob.user, NombreUsuario(getuid()));
-	*updatedJob.retrn = returnState(itemPid, updatedJob.state);
-	updateJobItem(updatedJob, updateJobPos, jobLst);
+	w = waitpid(itemPid, &state, WNOHANG | WUNTRACED | WCONTINUED);
+	if(itemPid == w){
+		updatedJob.priority = getpriority(PRIO_PROCESS, itemPid);
+		strcpy(updatedJob.user, NombreUsuario(getuid()));
+		*updatedJob.retrn = returnState(state, updatedJob.state);
+		updateJobItem(updatedJob, updateJobPos, jobLst);
+	}
 }
 
 void cmd_back(char *tr[]){
@@ -1796,8 +1799,6 @@ void lstJobs(){
 			printf("(%03d) ", *prntItem.retrn);
 		
 		printf("%s\n", prntItem.comm);
-	
-	//faltan cousas por facer!!!
 	}
 }
 
