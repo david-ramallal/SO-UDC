@@ -123,8 +123,7 @@ tMemPos findItem(char *address, tMemList l)
     addr = malloc(sizeof(char*));
     
     for(p=l; (p!=NULL) ; p = p->next){
-		*addr = *(p->data.address);
-		//sprintf(addr, "%p", p->data.address);
+		sprintf(addr, "%p", p->data.address);
 		if(strcmp(addr, address) == 0)
 			break;
 		

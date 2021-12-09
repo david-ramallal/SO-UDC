@@ -105,3 +105,13 @@ int InsertCmd (TCMDLIST l, char * cmd)
 	}
 	return 0;
 }
+	
+
+
+
+
+
+
+
+
+	
