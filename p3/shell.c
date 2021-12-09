@@ -1484,6 +1484,7 @@ void cmd_rederr(char *tr[]){
 		strcpy(file, tr[0]);
 		if((df=open(file, O_WRONLY | O_EXCL | O_CREAT, S_IRGRP | S_IRUSR | S_IWUSR | S_IROTH |  S_IWGRP)) == -1){
 			printf("Impossible to redirect: File exists\n");
+			free(file);
 			return;
 		}
 		dup2(df, STDERR_FILENO);
@@ -1533,6 +1534,7 @@ void cmd_cambiarvar(char *tr[]){
   extern char ** environ;
   char *nameValue;
   nameValue=(char *)malloc(strlen(tr[1])+strlen(tr[2])+2);
+  strcpy(nameValue, "");
   
   strcat(nameValue, tr[1]);
   strcat(nameValue, "=");
@@ -1546,6 +1548,7 @@ void cmd_cambiarvar(char *tr[]){
   }else if(!strcmp(tr[0], "-p")){
     putenv(nameValue);
   }
+  free(nameValue);
 }
 char * NombreUsuario (uid_t uid){
 	struct passwd *p;
